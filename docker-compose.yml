@@ -1,0 +1,45 @@
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: bml_switch
+      MYSQL_USER: bml_switch
+      MYSQL_PASSWORD: change_me
+      MYSQL_ROOT_PASSWORD: change_me_root
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-ubml_switch", "-pchange_me"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+
+  app:
+    build: .
+    depends_on:
+      mysql:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/bml_switch?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Karachi
+      SPRING_DATASOURCE_USERNAME: bml_switch
+      SPRING_DATASOURCE_PASSWORD: change_me
+      MOCK_IMAL: "true"
+      MOCK_OTP: "true"
+      SANDBOX_MODE: "true"
+      JWT_SECRET: change_me_min_32_chars_256bit_entropy____
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/api/v1/system/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+volumes:
+  mysql_data:

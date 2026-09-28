@@ -1,0 +1,75 @@
+{
+  "info": {
+    "name": "bml_switch AppInSnap Phase-0 (STUB)",
+    "description": "Skeleton Postman collection. Expand examples during implementation to match OpenAPI. Base URL: {{baseUrl}}",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "access_token", "value": "" },
+    { "key": "refresh_token", "value": "" },
+    { "key": "strToken", "value": "" },
+    { "key": "otpTicket", "value": "" },
+    { "key": "client_id", "value": "appinsnap-sandbox" },
+    { "key": "client_secret", "value": "change_me_sandbox_secret" }
+  ],
+  "item": [
+    {
+      "name": "0 System",
+      "item": [
+        { "name": "health", "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/api/v1/system/health" } },
+        { "name": "version", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }], "url": "{{baseUrl}}/api/v1/system/version" } }
+      ]
+    },
+    {
+      "name": "1 Auth",
+      "item": [
+        {
+          "name": "token",
+          "event": [{ "listen": "test", "script": { "exec": ["var j=pm.response.json();", "pm.collectionVariables.set('access_token', j.access_token);", "pm.collectionVariables.set('refresh_token', j.refresh_token);"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"client_id\": \"{{client_id}}\",\n  \"client_secret\": \"{{client_secret}}\",\n  \"grant_type\": \"client_credentials\"\n}" },
+            "url": "{{baseUrl}}/api/v1/auth/token"
+          }
+        },
+        { "name": "refresh", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"refresh_token\": \"{{refresh_token}}\" }" }, "url": "{{baseUrl}}/api/v1/auth/refresh" } },
+        { "name": "otp send", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"CNIC\": \"4210112345678\",\n  \"MobileNo\": \"03001234567\",\n  \"purpose\": \"IBFT\",\n  \"strToken\": \"{{strToken}}\"\n}" }, "url": "{{baseUrl}}/api/v1/auth/otp/send" } },
+        { "name": "otp verify", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"otpReference\": \"OTP-MOCK-001\",\n  \"otp\": \"1234\",\n  \"strToken\": \"{{strToken}}\"\n}" }, "url": "{{baseUrl}}/api/v1/auth/otp/verify" } },
+        { "name": "logout", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"refresh_token\": \"{{refresh_token}}\", \"strToken\": \"{{strToken}}\", \"revokeCustomerSession\": true }" }, "url": "{{baseUrl}}/api/v1/auth/logout" } }
+      ]
+    },
+    {
+      "name": "2 Lookups",
+      "item": [
+        { "name": "banks", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }], "url": "{{baseUrl}}/api/v1/lookups/banks?active=true&supportsIbft=true" } },
+        { "name": "purpose-of-payment", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }], "url": "{{baseUrl}}/api/v1/lookups/purpose-of-payment" } },
+        { "name": "occupations", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }], "url": "{{baseUrl}}/api/v1/lookups/occupations" } },
+        { "name": "purpose-of-account", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }], "url": "{{baseUrl}}/api/v1/lookups/purpose-of-account" } },
+        { "name": "app-config", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }], "url": "{{baseUrl}}/api/v1/lookups/app-config" } }
+      ]
+    },
+    {
+      "name": "3 Account",
+      "item": [
+        { "name": "login", "event": [{ "listen": "test", "script": { "exec": ["pm.collectionVariables.set('strToken', pm.response.json().strToken);"] } }], "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"UserName\": \"ali.khan\",\n  \"CNIC\": \"4210112345678\",\n  \"password\": \"Sandbox@123\"\n}" }, "url": "{{baseUrl}}/api/v1/account/login" } },
+        { "name": "account-list", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"strToken\": \"{{strToken}}\",\n  \"Request\": { \"CNIC\": \"4210112345678\" }\n}" }, "url": "{{baseUrl}}/api/v1/account/account-list" } },
+        { "name": "open", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }, { "key": "Idempotency-Key", "value": "{{$guid}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"strToken\": \"{{strToken}}\",\n  \"CNIC\": \"4210112345678\",\n  \"fullName\": \"ALI KHAN\",\n  \"MobileNo\": \"03001234567\",\n  \"dateOfBirth\": \"1990-01-01\",\n  \"fatherName\": \"AHMED KHAN\",\n  \"occupationCode\": \"EMP\",\n  \"purposeOfAccountCode\": \"SAV\",\n  \"mailingAddress\": \"House 123, Karachi\",\n  \"city\": \"Karachi\",\n  \"provinceCode\": \"SD\",\n  \"productCode\": \"ASAAN_DIGITAL\"\n}" }, "url": "{{baseUrl}}/api/v1/account/open" } },
+        { "name": "approve-mock", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"CNIC\": \"4210112345679\" }" }, "url": "{{baseUrl}}/api/v1/account/approve-mock" } },
+        { "name": "change-password", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"strToken\": \"{{strToken}}\",\n  \"currentPassword\": \"Sandbox@123\",\n  \"newPassword\": \"Sandbox@1234\"\n}" }, "url": "{{baseUrl}}/api/v1/account/change-password" } }
+      ]
+    },
+    {
+      "name": "4 Money",
+      "item": [
+        { "name": "balance", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"strToken\": \"{{strToken}}\",\n  \"fromAccount\": \"0345001234567\"\n}" }, "url": "{{baseUrl}}/api/v1/inquiry/balance" } },
+        { "name": "ift", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }, { "key": "Idempotency-Key", "value": "{{$guid}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"strToken\": \"{{strToken}}\",\n  \"fromAccount\": \"0345001234567\",\n  \"toAccount\": \"0345001234568\",\n  \"amount\": \"100.00\",\n  \"PurposeOfPayment\": \"FAM\",\n  \"Description\": \"demo ift\"\n}" }, "url": "{{baseUrl}}/api/v1/payment/ift" } },
+        { "name": "ibft", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }, { "key": "Idempotency-Key", "value": "{{$guid}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"strToken\": \"{{strToken}}\",\n  \"fromAccount\": \"0345001234567\",\n  \"fromIBAN\": \"PK00BMAL0000000345001234567\",\n  \"toIBAN\": \"PK36MEZN0001230012345678\",\n  \"toIMD\": \"601001\",\n  \"amount\": \"50.00\",\n  \"PurposeOfPayment\": \"FAM\",\n  \"otpTicket\": \"{{otpTicket}}\"\n}" }, "url": "{{baseUrl}}/api/v1/payment/ibft" } },
+        { "name": "ibft-status", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"strToken\": \"{{strToken}}\",\n  \"stan\": \"123456\"\n}" }, "url": "{{baseUrl}}/api/v1/inquiry/ibft-status" } },
+        { "name": "limits", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"strToken\": \"{{strToken}}\",\n  \"fromAccount\": \"0345001234567\"\n}" }, "url": "{{baseUrl}}/api/v1/inquiry/limits" } },
+        { "name": "mini-statement", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"strToken\": \"{{strToken}}\",\n  \"fromAccount\": \"0345001234567\"\n}" }, "url": "{{baseUrl}}/api/v1/inquiry/mini-statement" } }
+      ]
+    }
+  ]
+}

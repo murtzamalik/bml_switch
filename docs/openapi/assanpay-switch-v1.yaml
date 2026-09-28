@@ -1,0 +1,410 @@
+openapi: 3.0.3
+info:
+  title: Bank Al Murqarmah Integration Switch — AppInSnap API
+  version: 1.0.0-draft
+  description: |
+    Contract-first stub for AppInSnap. Request/response bodies follow AssanPay Third-Party
+    API entity shapes (see docs/AssanPay_ThirdParty_API_Docs_2.txt). Expand schemas during
+    Phase 0 implementation; this file lists routes and auth for early integration planning.
+servers:
+  - url: http://localhost:8080
+    description: Local Docker Compose
+tags:
+  - name: Auth
+  - name: Account
+  - name: Payment
+  - name: Inquiry
+  - name: Statements
+  - name: Lookups
+  - name: System
+paths:
+  /api/v1/auth/token:
+    post:
+      tags: [Auth]
+      summary: Channel client_credentials → JWT
+      security: []
+      responses:
+        '200':
+          description: Access + refresh tokens
+  /api/v1/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Rotate refresh token
+      security: []
+      responses:
+        '200':
+          description: New token pair
+  /api/v1/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Revoke channel refresh; optional customer session
+      responses:
+        '200':
+          description: Revoked
+  /api/v1/auth/otp/send:
+    post:
+      tags: [Auth]
+      summary: Mock OTP send (MOCK_OTP=true) — required before IBFT
+      responses:
+        '200':
+          description: otpReference + expires_in
+  /api/v1/auth/otp/verify:
+    post:
+      tags: [Auth]
+      summary: Mock OTP verify — fixed otp 1234 → otpTicket
+      responses:
+        '200':
+          description: otpTicket for payment/ibft
+  /api/v1/account/login:
+    post:
+      tags: [Account]
+      summary: Customer login → strToken (LoginRequestEntity / LoginResponseEntity)
+      responses:
+        '200':
+          description: AssanPay LoginResponseEntity
+  /api/v1/account/register:
+    post:
+      tags: [Account]
+      summary: Register (RegisterRequestEntity)
+      responses:
+        '200':
+          description: AssanPay RegisterResponseEntity
+  /api/v1/account/customer-detail:
+    post:
+      tags: [Account]
+      summary: Customer detail by CNIC
+      responses:
+        '200':
+          description: AssanPay CustomerDetailResponseEntity
+  /api/v1/account/account-list:
+    post:
+      tags: [Account]
+      summary: CASA account list by CNIC
+      responses:
+        '200':
+          description: AssanPay AccountListResponseEntity
+  /api/v1/account/open:
+    post:
+      tags: [Account]
+      summary: Open Asaan Digital — returns accountNumber + IBAN (see required-fields-matrix)
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Account open result
+  /api/v1/account/approve-mock:
+    post:
+      tags: [Account]
+      summary: Sandbox-only — clear MANUAL_REVIEW for odd CNIC
+      responses:
+        '200':
+          description: Approved for open retry
+  /api/v1/account/change-password:
+    post:
+      tags: [Account]
+      summary: Change password (strToken required)
+      responses:
+        '200':
+          description: Success
+  /api/v1/account/reset-password-mock:
+    post:
+      tags: [Account]
+      summary: Sandbox reset by CNIC (channel JWT)
+      responses:
+        '200':
+          description: Password reset
+  /api/v1/account/upload-documents-unikrew:
+    post:
+      tags: [Account]
+      summary: Unikrew document upload (mock)
+      responses:
+        '200':
+          description: AssanPay UploadDocumentUnikrewResponseEntity
+  /api/v1/account/validate-document-unikrew:
+    post:
+      tags: [Account]
+      summary: Unikrew CNIC validation (mock)
+      responses:
+        '200':
+          description: AssanPay ValidateDocumentUnikrewResponseEntity
+  /api/v1/account/verify-liveliness:
+    post:
+      tags: [Account]
+      summary: Face liveliness (mock)
+      responses:
+        '200':
+          description: AssanPay VerifyLivelinessResponseEntity
+  /api/v1/account/verify-fingers:
+    post:
+      tags: [Account]
+      summary: NADRA verify fingers (mock)
+      responses:
+        '200':
+          description: AssanPay VerifyFingerResponseEntity
+  /api/v1/payment/ift:
+    post:
+      tags: [Payment]
+      summary: IFT payment — nested return
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: IftPaymentResponseEntity
+  /api/v1/payment/ibft:
+    post:
+      tags: [Payment]
+      summary: IBFT payment — flat Response_Code only
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: IbftPaymentResponseEntity
+  /api/v1/inquiry/balance:
+    post:
+      tags: [Inquiry]
+      summary: Balance inquiry — capital Return
+      responses:
+        '200':
+          description: BalanceInquiryResponseEntity
+  /api/v1/inquiry/ift-title:
+    post:
+      tags: [Inquiry]
+      summary: IFT title fetch
+      responses:
+        '200':
+          description: IftTitleFetchResponseEntity
+  /api/v1/inquiry/ibft-title:
+    post:
+      tags: [Inquiry]
+      summary: IBFT title fetch — double-nested
+      responses:
+        '200':
+          description: IbftTitleFetchResponseEntity
+  /api/v1/inquiry/cnic:
+    post:
+      tags: [Inquiry]
+      summary: Accounts by CNIC
+      responses:
+        '200':
+          description: CnicTitleFetchResponseEntity
+  /api/v1/inquiry/mini-statement:
+    post:
+      tags: [Statements]
+      summary: Mini statement last N transactions
+      responses:
+        '200':
+          description: Mini statement envelope
+  /api/v1/inquiry/statement:
+    post:
+      tags: [Statements]
+      summary: Date-range statement
+      responses:
+        '200':
+          description: Statement envelope
+  /api/v1/accounts/information:
+    post:
+      tags: [Account]
+      summary: Account information / product metadata
+      responses:
+        '200':
+          description: Account information envelope
+  /api/v1/inquiry/ibft-status:
+    post:
+      tags: [Inquiry]
+      summary: IBFT status inquiry (Phase 0 MUST after flat pay)
+      responses:
+        '200':
+          description: Status POSTED/FAILED/PENDING
+  /api/v1/inquiry/limits:
+    post:
+      tags: [Inquiry]
+      summary: Customer remaining limits (SHOULD)
+      responses:
+        '200':
+          description: Limits envelope
+  /api/v1/inquiry/receipt:
+    post:
+      tags: [Inquiry]
+      summary: Receipt by STAN/intRefNum (SHOULD)
+      responses:
+        '200':
+          description: Receipt envelope
+  /api/v1/system/health:
+    get:
+      tags: [System]
+      summary: AppInSnap connectivity smoke
+      responses:
+        '200':
+          description: status, mockImal, catalogVersion
+  /api/v1/system/version:
+    get:
+      tags: [System]
+      summary: App + lookups catalog version
+      responses:
+        '200':
+          description: version info
+  /api/v1/lookups/banks:
+    get:
+      tags: [Lookups]
+      summary: IBFT bank list (master data — do not hardcode on mobile)
+      parameters:
+        - name: active
+          in: query
+          schema: { type: boolean, default: true }
+        - name: supportsIbft
+          in: query
+          schema: { type: boolean }
+        - name: q
+          in: query
+          schema: { type: string }
+        - name: cursor
+          in: query
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50, maximum: 200 }
+        - $ref: '#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: Bank list with catalogVersion/asOf
+          headers:
+            ETag:
+              schema: { type: string }
+            Cache-Control:
+              schema: { type: string }
+        '304':
+          description: Not modified
+  /api/v1/lookups/banks/{imd}:
+    get:
+      tags: [Lookups]
+      summary: Single bank by IMD
+      parameters:
+        - name: imd
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Bank detail
+        '404':
+          description: Unknown or inactive IMD
+  /api/v1/lookups/purpose-of-payment:
+    get:
+      tags: [Lookups]
+      summary: PurposeOfPayment codes for IFT/IBFT
+      responses:
+        '200':
+          description: Purpose code list
+  /api/v1/lookups/purpose-of-account:
+    get:
+      tags: [Lookups]
+      summary: Purpose of account (onboarding — distinct from payment purpose)
+      responses:
+        '200':
+          description: Purpose-of-account list
+  /api/v1/lookups/occupations:
+    get:
+      tags: [Lookups]
+      summary: Occupations for account open
+      responses:
+        '200':
+          description: Occupation list
+  /api/v1/lookups/response-codes:
+    get:
+      tags: [Lookups]
+      summary: Business response code dictionary (subset)
+      responses:
+        '200':
+          description: Code → UX message
+  /api/v1/lookups/account-types:
+    get:
+      tags: [Lookups]
+      summary: Account / product types
+      responses:
+        '200':
+          description: Account types
+  /api/v1/lookups/provinces:
+    get:
+      tags: [Lookups]
+      summary: Provinces / areas for NADRA onboarding
+      responses:
+        '200':
+          description: Province list
+  /api/v1/lookups/id-types:
+    get:
+      tags: [Lookups]
+      summary: ID types for title fetch
+      responses:
+        '200':
+          description: ID types
+  /api/v1/lookups/app-config:
+    get:
+      tags: [Lookups]
+      summary: Safe public mobile config (limits display, statement N, flags)
+      responses:
+        '200':
+          description: Public config map (no secrets)
+  /api/v1/lookups/finger-indexes:
+    get:
+      tags: [Lookups]
+      summary: Allowed NADRA finger indexes
+      responses:
+        '200':
+          description: Finger indexes
+  /api/v1/lookups/onboarding-steps:
+    get:
+      tags: [Lookups]
+      summary: KYC step_id / status_id catalog
+      responses:
+        '200':
+          description: Ordered onboarding steps
+  /api/v1/lookups/branches:
+    get:
+      tags: [Lookups]
+      summary: Optional mock branches
+      responses:
+        '200':
+          description: Branch list
+  /api/v1/lookups/currencies:
+    get:
+      tags: [Lookups]
+      summary: Currencies (PKR)
+      responses:
+        '200':
+          description: Currency list
+  /api/v1/lookups/version:
+    get:
+      tags: [Lookups]
+      summary: Lookups catalog version for cache bust
+      responses:
+        '200':
+          description: catalogVersion + asOf
+components:
+  securitySchemes:
+    ChannelBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Channel JWT from /api/v1/auth/token
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        format: uuid
+    CorrelationId:
+      name: X-Correlation-Id
+      in: header
+      required: false
+      schema:
+        type: string
+        format: uuid
+  headers:
+    CorrelationIdResponse:
+      description: Echoed correlation id
+      schema:
+        type: string
+security:
+  - ChannelBearer: []

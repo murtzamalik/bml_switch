@@ -1,0 +1,412 @@
+{
+  "info": {
+    "name": "BML Switch Phase 0 — AppInSnap",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "bml-switch-phase0-appinsnap",
+    "description": "Bank Al Murqarmah Integration Switch — AppInSnap sandbox collection.\n\n**Read first:** docs/handoff/APPINSNAP-POSTMAN-GUIDE.md\n**API reference:** docs/handoff/APPINSNAP-API-GUIDE.md\n**Test data:** docs/handoff/APPINSNAP-TEST-DATA.md\n\n**Mock OTP = 1234** (never 123456).\n\nRun folder **01 — Happy path (in order)** top-to-bottom. Collection variables are auto-filled by Tests scripts.\n\nSeed: client `appinsnap-sandbox` / `change_me_sandbox_secret`; user `ali.khan` / `Sandbox@123`; accounts 0345001234567 → 0345001234568; IBFT sample IMD `601004` (Meezan)."
+  },
+  "variable": [
+    {"key": "baseUrl", "value": "http://localhost:8080"},
+    {"key": "clientId", "value": "appinsnap-sandbox"},
+    {"key": "clientSecret", "value": "change_me_sandbox_secret"},
+    {"key": "accessToken", "value": ""},
+    {"key": "refreshToken", "value": ""},
+    {"key": "strToken", "value": ""},
+    {"key": "otpReference", "value": ""},
+    {"key": "otpTicket", "value": ""},
+    {"key": "imd", "value": "601004"},
+    {"key": "toIban", "value": "PK12MEZN0000001234567890"},
+    {"key": "toAccount", "value": "1234567890"},
+    {"key": "fromAccount", "value": "0345001234567"},
+    {"key": "toAccountIft", "value": "0345001234568"},
+    {"key": "stan", "value": ""},
+    {"key": "transactionId", "value": ""}
+  ],
+  "item": [
+    {
+      "name": "01 — Happy path (in order)",
+      "description": "Run these requests in sequence. OTP verify uses **1234**.",
+      "item": [
+        {
+          "name": "01 system/health",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "X-Correlation-Id", "value": "{{$guid}}"},
+              {"key": "Accept", "value": "application/json"}
+            ],
+            "url": "{{baseUrl}}/api/v1/system/health"
+          }
+        },
+        {
+          "name": "02 auth/token",
+          "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+            "pm.test('token 200', function () { pm.response.to.have.status(200); });",
+            "var j = pm.response.json();",
+            "pm.collectionVariables.set('accessToken', j.access_token);",
+            "pm.collectionVariables.set('refreshToken', j.refresh_token);",
+            "pm.test('has access_token', function () { pm.expect(j.access_token).to.be.ok; });"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "X-Correlation-Id", "value": "{{$guid}}"}
+            ],
+            "body": {"mode": "raw", "raw": "{\n  \"client_id\": \"{{clientId}}\",\n  \"client_secret\": \"{{clientSecret}}\",\n  \"grant_type\": \"client_credentials\"\n}"},
+            "url": "{{baseUrl}}/api/v1/auth/token"
+          }
+        },
+        {
+          "name": "03 lookups/banks",
+          "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+            "pm.test('banks 200', function () { pm.response.to.have.status(200); });",
+            "var j = pm.response.json();",
+            "pm.test('at least 16 banks', function () { pm.expect(j.items.length).to.be.at.least(16); });",
+            "var meezan = (j.items || []).find(function (b) { return b.imd === '601004'; });",
+            "if (meezan) { pm.collectionVariables.set('imd', meezan.imd); }"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{accessToken}}"},
+              {"key": "Accept", "value": "application/json"}
+            ],
+            "url": "{{baseUrl}}/api/v1/lookups/banks?active=true&supportsIbft=true"
+          }
+        },
+        {
+          "name": "04 account/login",
+          "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+            "pm.test('login 200', function () { pm.response.to.have.status(200); });",
+            "var j = pm.response.json();",
+            "pm.collectionVariables.set('strToken', j.strToken);",
+            "pm.test('strToken present', function () { pm.expect(j.strToken).to.be.ok; pm.expect(j.Response_Code).to.eql('00'); });"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{accessToken}}"},
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "X-Correlation-Id", "value": "{{$guid}}"}
+            ],
+            "body": {"mode": "raw", "raw": "{\n  \"UserName\": \"ali.khan\",\n  \"CNIC\": \"4210112345678\",\n  \"password\": \"Sandbox@123\"\n}"},
+            "url": "{{baseUrl}}/api/v1/account/login"
+          }
+        },
+        {
+          "name": "05 inquiry/balance",
+          "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+            "var j = pm.response.json();",
+            "pm.test('balance Return nest', function () {",
+            "  pm.expect(j.Response_Code).to.eql('00');",
+            "  pm.expect(j.Return).to.be.ok;",
+            "  pm.expect(j.Return.Amount).to.be.ok;",
+            "});"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{accessToken}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {"mode": "raw", "raw": "{\n  \"strToken\": \"{{strToken}}\",\n  \"fromAccount\": \"{{fromAccount}}\"\n}"},
+            "url": "{{baseUrl}}/api/v1/inquiry/balance"
+          }
+        },
+        {
+          "name": "06 payment/ift",
+          "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+            "var j = pm.response.json();",
+            "pm.test('IFT nested return', function () {",
+            "  pm.expect(j.Response_Code).to.eql('00');",
+            "  pm.expect(j.return).to.be.ok;",
+            "  pm.expect(j.return.status).to.eql('00');",
+            "});"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{accessToken}}"},
+              {"key": "Idempotency-Key", "value": "{{$guid}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {"mode": "raw", "raw": "{\n  \"strToken\": \"{{strToken}}\",\n  \"fromAccount\": \"{{fromAccount}}\",\n  \"toAccount\": \"{{toAccountIft}}\",\n  \"amount\": \"100.00\",\n  \"PurposeOfPayment\": \"FAM\",\n  \"Description\": \"postman ift\"\n}"},
+            "url": "{{baseUrl}}/api/v1/payment/ift"
+          }
+        },
+        {
+          "name": "07 inquiry/ibft-title",
+          "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+            "var j = pm.response.json();",
+            "pm.test('IBFT title double nest', function () {",
+            "  pm.expect(j.Response_Code).to.eql('00');",
+            "  pm.expect(j.IBFTTitleFetchResponse).to.be.ok;",
+            "  pm.expect(j.IBFTTitleFetchResponse.return).to.be.ok;",
+            "});"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{accessToken}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {"mode": "raw", "raw": "{\n  \"strToken\": \"{{strToken}}\",\n  \"fromAccount\": \"{{fromAccount}}\",\n  \"toIMD\": \"{{imd}}\",\n  \"toIBAN\": \"{{toIban}}\",\n  \"toAccount\": \"{{toAccount}}\",\n  \"amount\": \"25.00\"\n}"},
+            "url": "{{baseUrl}}/api/v1/inquiry/ibft-title"
+          }
+        },
+        {
+          "name": "08 auth/otp/send",
+          "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+            "var j = pm.response.json();",
+            "pm.collectionVariables.set('otpReference', j.otpReference);",
+            "pm.test('otpReference', function () { pm.expect(j.Response_Code).to.eql('00'); pm.expect(j.otpReference).to.be.ok; });"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{accessToken}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {"mode": "raw", "raw": "{\n  \"strToken\": \"{{strToken}}\",\n  \"purpose\": \"IBFT\",\n  \"mobile\": \"03001234567\"\n}"},
+            "url": "{{baseUrl}}/api/v1/auth/otp/send"
+          }
+        },
+        {
+          "name": "09 auth/otp/verify (OTP 1234)",
+          "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+            "var j = pm.response.json();",
+            "pm.collectionVariables.set('otpTicket', j.otpTicket);",
+            "pm.test('otpTicket', function () { pm.expect(j.Response_Code).to.eql('00'); pm.expect(j.otpTicket).to.be.ok; });"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{accessToken}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {"mode": "raw", "raw": "{\n  \"strToken\": \"{{strToken}}\",\n  \"otpReference\": \"{{otpReference}}\",\n  \"otp\": \"1234\"\n}"},
+            "url": "{{baseUrl}}/api/v1/auth/otp/verify"
+          }
+        },
+        {
+          "name": "10 payment/ibft",
+          "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+            "var j = pm.response.json();",
+            "pm.collectionVariables.set('stan', j.stan);",
+            "pm.collectionVariables.set('transactionId', j.transactionID);",
+            "pm.test('IBFT flat + fee', function () {",
+            "  pm.expect(j.Response_Code).to.eql('00');",
+            "  pm.expect(j.fee).to.eql('0.00');",
+            "  pm.expect(j.transactionID).to.be.ok;",
+            "  pm.expect(j.return).to.be.undefined;",
+            "});"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{accessToken}}"},
+              {"key": "Idempotency-Key", "value": "{{$guid}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {"mode": "raw", "raw": "{\n  \"strToken\": \"{{strToken}}\",\n  \"fromAccount\": \"{{fromAccount}}\",\n  \"toIMD\": \"{{imd}}\",\n  \"toIBAN\": \"{{toIban}}\",\n  \"toAccount\": \"{{toAccount}}\",\n  \"amount\": \"25.00\",\n  \"PurposeOfPayment\": \"FAM\",\n  \"Description\": \"postman ibft\",\n  \"otpTicket\": \"{{otpTicket}}\"\n}"},
+            "url": "{{baseUrl}}/api/v1/payment/ibft"
+          }
+        },
+        {
+          "name": "11 inquiry/ibft-status",
+          "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+            "var j = pm.response.json();",
+            "pm.test('status POSTED', function () {",
+            "  pm.expect(j.Response_Code).to.eql('00');",
+            "  pm.expect(j.status).to.eql('POSTED');",
+            "});"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{accessToken}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {"mode": "raw", "raw": "{\n  \"strToken\": \"{{strToken}}\",\n  \"transactionID\": \"{{transactionId}}\",\n  \"stan\": \"{{stan}}\"\n}"},
+            "url": "{{baseUrl}}/api/v1/inquiry/ibft-status"
+          }
+        },
+        {
+          "name": "12 inquiry/limits",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{accessToken}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {"mode": "raw", "raw": "{\n  \"strToken\": \"{{strToken}}\",\n  \"fromAccount\": \"{{fromAccount}}\"\n}"},
+            "url": "{{baseUrl}}/api/v1/inquiry/limits"
+          }
+        },
+        {
+          "name": "13 inquiry/receipt",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{accessToken}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {"mode": "raw", "raw": "{\n  \"strToken\": \"{{strToken}}\",\n  \"stan\": \"{{stan}}\",\n  \"transactionID\": \"{{transactionId}}\"\n}"},
+            "url": "{{baseUrl}}/api/v1/inquiry/receipt"
+          }
+        },
+        {
+          "name": "14 inquiry/mini-statement",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{accessToken}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {"mode": "raw", "raw": "{\n  \"strToken\": \"{{strToken}}\",\n  \"fromAccount\": \"{{fromAccount}}\",\n  \"limit\": 10\n}"},
+            "url": "{{baseUrl}}/api/v1/inquiry/mini-statement"
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 — Lookups (channel JWT)",
+      "item": [
+        {
+          "name": "purpose-of-payment",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": "{{baseUrl}}/api/v1/lookups/purpose-of-payment"
+          }
+        },
+        {
+          "name": "occupations",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": "{{baseUrl}}/api/v1/lookups/occupations"
+          }
+        },
+        {
+          "name": "app-config",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": "{{baseUrl}}/api/v1/lookups/app-config"
+          }
+        },
+        {
+          "name": "banks by IMD (601004)",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": "{{baseUrl}}/api/v1/lookups/banks/{{imd}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 — Negative checks",
+      "description": "Expect business Response_Code (usually HTTP 200) or 401 for auth.",
+      "item": [
+        {
+          "name": "IBFT without otpTicket → 78",
+          "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+            "var j = pm.response.json();",
+            "pm.test('code 78', function () { pm.expect(j.Response_Code).to.eql('78'); });"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{accessToken}}"},
+              {"key": "Idempotency-Key", "value": "{{$guid}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {"mode": "raw", "raw": "{\n  \"strToken\": \"{{strToken}}\",\n  \"fromAccount\": \"{{fromAccount}}\",\n  \"toIMD\": \"{{imd}}\",\n  \"toIBAN\": \"{{toIban}}\",\n  \"toAccount\": \"{{toAccount}}\",\n  \"amount\": \"10.00\",\n  \"PurposeOfPayment\": \"FAM\",\n  \"Description\": \"missing otp\"\n}"},
+            "url": "{{baseUrl}}/api/v1/payment/ibft"
+          }
+        },
+        {
+          "name": "IFT from zero account → 51",
+          "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+            "var j = pm.response.json();",
+            "pm.test('code 51', function () { pm.expect(j.Response_Code).to.eql('51'); });"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{accessToken}}"},
+              {"key": "Idempotency-Key", "value": "{{$guid}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {"mode": "raw", "raw": "{\n  \"strToken\": \"{{strToken}}\",\n  \"fromAccount\": \"0345009999999\",\n  \"toAccount\": \"{{toAccountIft}}\",\n  \"amount\": \"10.00\",\n  \"PurposeOfPayment\": \"FAM\",\n  \"Description\": \"nsf\"\n}"},
+            "url": "{{baseUrl}}/api/v1/payment/ift"
+          }
+        },
+        {
+          "name": "IBFT bad IMD → 76",
+          "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+            "var j = pm.response.json();",
+            "pm.test('code 76', function () { pm.expect(j.Response_Code).to.eql('76'); });"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{accessToken}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {"mode": "raw", "raw": "{\n  \"strToken\": \"{{strToken}}\",\n  \"fromAccount\": \"{{fromAccount}}\",\n  \"toIMD\": \"999999\",\n  \"toIBAN\": \"PK99XXXX0000001234567890\",\n  \"toAccount\": \"1234567890\",\n  \"amount\": \"10.00\"\n}"},
+            "url": "{{baseUrl}}/api/v1/inquiry/ibft-title"
+          }
+        },
+        {
+          "name": "Balance missing strToken → 401/91",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{accessToken}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {"mode": "raw", "raw": "{\n  \"fromAccount\": \"{{fromAccount}}\"\n}"},
+            "url": "{{baseUrl}}/api/v1/inquiry/balance"
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 — Auth extras",
+      "item": [
+        {
+          "name": "auth/refresh",
+          "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+            "var j = pm.response.json();",
+            "if (j.access_token) {",
+            "  pm.collectionVariables.set('accessToken', j.access_token);",
+            "  pm.collectionVariables.set('refreshToken', j.refresh_token);",
+            "}"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"refresh_token\": \"{{refreshToken}}\"\n}"},
+            "url": "{{baseUrl}}/api/v1/auth/refresh"
+          }
+        },
+        {
+          "name": "auth/logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{accessToken}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {"mode": "raw", "raw": "{\n  \"refresh_token\": \"{{refreshToken}}\",\n  \"strToken\": \"{{strToken}}\",\n  \"revokeCustomerSession\": true\n}"},
+            "url": "{{baseUrl}}/api/v1/auth/logout"
+          }
+        }
+      ]
+    }
+  ]
+}
