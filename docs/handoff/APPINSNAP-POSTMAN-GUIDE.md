@@ -156,7 +156,7 @@ Without Postman:
 ./scripts/smoke.sh
 ```
 
-Same happy path (OTP `1234`) against `http://localhost:8080`.
+Same happy path (OTP `1234`) against `http://46.224.146.158:18080`.
 
 ---
 
