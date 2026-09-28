@@ -14,7 +14,7 @@
 1. Switch running locally:
    ```bash
    docker compose up --build -d
-   curl -s http://localhost:8080/api/v1/system/health
+   curl -s http://46.224.146.158:18080/api/v1/system/health
    ```
    Expect `"status":"UP"`.
 2. Postman Desktop or Postman web with ability to import a collection JSON.
@@ -32,7 +32,7 @@
 
 | Variable | Default | Notes |
 |----------|---------|-------|
-| `baseUrl` | `http://localhost:8080` | Change for UAT later |
+| `baseUrl` | `http://46.224.146.158:18080` | Sandbox IP `46.224.146.158` port `18080` |
 | `clientId` | `appinsnap-sandbox` | |
 | `clientSecret` | `change_me_sandbox_secret` | Sandbox only |
 | `accessToken` | *(empty)* | Auto-set by **01 auth/token** |

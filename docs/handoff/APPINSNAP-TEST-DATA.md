@@ -1,7 +1,7 @@
 # AppInSnap — Sandbox Test Data
 
 Copy/paste sheet for Slack, email, or ticket comments.  
-**Environment:** local Docker sandbox · Base URL `http://localhost:8080` · Mock OTP **`1234`**
+**Environment:** shared sandbox · Base URL `http://46.224.146.158:18080` · IP `46.224.146.158` · Port `18080` · Mock OTP **`1234`**
 
 ---
 

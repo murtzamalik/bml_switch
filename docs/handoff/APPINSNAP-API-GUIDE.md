@@ -3,8 +3,10 @@
 **Audience:** AppInSnap mobile engineers  
 **Product:** Bank Al Murqarmah Integration Switch (AppInSnap → Switch → Mock iMAL)  
 **Version:** Phase 0 / `0.1.0-SNAPSHOT`  
-**Base URL (local):** `http://localhost:8080`  
-**UAT/prod:** HTTPS only (URL provided separately)
+**Sandbox Base URL:** `http://46.224.146.158:18080`  
+**Host / IP:** `46.224.146.158`  
+**Port:** `18080`  
+**Local Docker (optional):** `http://localhost:8080`
 
 | Related | Link |
 |---------|------|
@@ -12,7 +14,7 @@
 | Postman how-to | [APPINSNAP-POSTMAN-GUIDE.md](./APPINSNAP-POSTMAN-GUIDE.md) |
 | Collection | [BML-Switch-Phase0.postman_collection.json](./BML-Switch-Phase0.postman_collection.json) |
 | OpenAPI | [`../openapi/assanpay-switch-v1.yaml`](../openapi/assanpay-switch-v1.yaml) |
-| Live Swagger | `http://localhost:8080/swagger-ui.html` |
+| Live Swagger | `http://46.224.146.158:18080/swagger-ui.html` |
 | Smoke script | `./scripts/smoke.sh` |
 
 **Mock OTP is always `1234` in this sandbox.**
@@ -699,14 +701,25 @@ Full detail: [error-handling.md](./error-handling.md).
 
 ## 10. Bring-up & verification
 
+**Sandbox (shared with AppInSnap):**
+
+```bash
+curl -s http://46.224.146.158:18080/api/v1/system/health
+# expect: "status":"UP"
+```
+
+Base URL: `http://46.224.146.158:18080` · Swagger: `http://46.224.146.158:18080/swagger-ui.html`
+
+Import Postman collection (`BML-Switch-Phase0.postman_collection.json`) — `baseUrl` is already set to the sandbox IP/port — then run folder **01 — Happy path**.
+
+**Local Docker (optional for Switch team):**
+
 ```bash
 cp .env.example .env
 docker compose up --build -d
 curl -s http://localhost:8080/api/v1/system/health
-./scripts/smoke.sh          # expect SMOKE OK
+BASE=http://localhost:8080 ./scripts/smoke.sh
 ```
-
-Import Postman → run folder **01 — Happy path** per [APPINSNAP-POSTMAN-GUIDE.md](./APPINSNAP-POSTMAN-GUIDE.md).
 
 ---
 
