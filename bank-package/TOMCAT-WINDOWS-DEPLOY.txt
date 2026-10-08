@@ -1,0 +1,78 @@
+BML Switch — Windows Tomcat deploy (NO Docker / NO WSL)
+=======================================================
+Callers: bank ops on restricted Windows machine.
+User: "tomcat pe deploy krte hain aur DB ky script DB pe run"
+
+Requirements
+------------
+  - JDK 21 (or newer 21.x)
+  - Apache Tomcat 10.1+  (Spring Boot 3 = Jakarta; Tomcat 9 will NOT work)
+  - MySQL 8.x reachable (local or bank DB server)
+  - Outbound HTTP to iMal SOAP: http://10.2.60.66:7005/...
+
+POC defaults (already in app)
+-----------------------------
+  MOCK_IMAL=false     → live SOAP for /account/open + /payment/ift
+  account-list + balance → local MySQL only
+  Token: BML-POC-STATIC-TOKEN-2026-AIS
+
+--------------------------------------------------------------------
+STEP 1 — Build WAR (on a machine with Maven + JDK 21, then copy WAR)
+--------------------------------------------------------------------
+  git clone <repo>
+  cd bml_switch
+  mvn -DskipTests clean package
+  Artifact: target\bml-switch.war
+
+  Or build on laptop and copy bml-switch.war to bank USB/share.
+
+--------------------------------------------------------------------
+STEP 2 — MySQL
+--------------------------------------------------------------------
+  Option A (recommended): empty DB, let app Flyway run
+    mysql -u root -p < bank-package\sql\00_create_database.sql
+    Keep FLYWAY_ENABLED=true in setenv.bat
+
+  Option B: DBA runs all scripts
+    mysql -u root -p < bank-package\sql\00_create_database.sql
+    mysql -u bml_switch -pchange_me bml_switch < bank-package\sql\01_schema.sql
+    mysql -u bml_switch -pchange_me bml_switch < bank-package\sql\02_seed.sql
+    mysql -u bml_switch -pchange_me bml_switch < bank-package\sql\03_imal_cif_acc_gl.sql
+    Set FLYWAY_ENABLED=false in setenv.bat
+
+--------------------------------------------------------------------
+STEP 3 — Tomcat config
+--------------------------------------------------------------------
+  1. Copy bank-package\tomcat\setenv.bat.example
+       → %CATALINA_HOME%\bin\setenv.bat
+  2. Edit DB host/user/password + JAVA_HOME path
+  3. Stop Tomcat
+  4. Deploy WAR as ROOT so URLs stay /api/v1/** :
+       copy target\bml-switch.war  %CATALINA_HOME%\webapps\ROOT.war
+     (Remove old webapps\ROOT folder/war first if present)
+  5. Start Tomcat:  %CATALINA_HOME%\bin\startup.bat
+  6. Logs:  %CATALINA_HOME%\logs\catalina.*.log
+            Look for "iMal SOAP REQUEST" blocks for SoapUI
+
+--------------------------------------------------------------------
+STEP 4 — Verify
+--------------------------------------------------------------------
+  curl http://127.0.0.1:8080/api/v1/system/health
+  Expect: "status":"UP","mockImal":false
+
+  AIS Base URL: http://<bank-windows-ip>:8080
+  Auth: Authorization: Bearer BML-POC-STATIC-TOKEN-2026-AIS
+
+--------------------------------------------------------------------
+ALTERNATIVE — no Tomcat, only JDK (if easier)
+--------------------------------------------------------------------
+  set SPRING_DATASOURCE_URL=jdbc:mysql://127.0.0.1:3306/bml_switch?...
+  set MOCK_IMAL=false
+  java -jar bml-switch.war
+
+--------------------------------------------------------------------
+Notes
+-----
+  - Tomcat 9 / Java 8/11 will fail — need Tomcat 10.1+ and JDK 21
+  - Prefer ROOT.war so base stays http://host:8080/api/v1/...
+  - MySQL connector is inside the WAR; no extra JDBC jar in Tomcat/lib

@@ -6,11 +6,15 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME:bml_switch}
     password: ${SPRING_DATASOURCE_PASSWORD:change_me}
   flyway:
-    enabled: true
+    # true = app applies V001..V003 on empty DB. If DBA already ran bank-package/sql, set false.
+    enabled: ${FLYWAY_ENABLED:true}
     locations: classpath:db/migration
 
 server:
   port: ${SERVER_PORT:8080}
+  # External Tomcat: deploy as ROOT.war so paths stay /api/v1/**
+  servlet:
+    context-path: ${SERVER_CONTEXT_PATH:}
 
 management:
   endpoints:

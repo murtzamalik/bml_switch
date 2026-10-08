@@ -1,0 +1,29 @@
+@echo off
+REM Callers: bank Windows Tomcat. Copy to %CATALINA_HOME%\bin\setenv.bat
+REM User: tomcat deploy + DB scripts (Docker/WSL blocked)
+
+set "JAVA_HOME=C:\Program Files\Java\jdk-21"
+set "JRE_HOME=%JAVA_HOME%"
+
+set "SPRING_DATASOURCE_URL=jdbc:mysql://127.0.0.1:3306/bml_switch?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Karachi"
+set "SPRING_DATASOURCE_USERNAME=bml_switch"
+set "SPRING_DATASOURCE_PASSWORD=change_me"
+
+set "MOCK_IMAL=false"
+set "MOCK_OTP=true"
+set "SWITCH_STATIC_TOKEN=BML-POC-STATIC-TOKEN-2026-AIS"
+set "JWT_SECRET=change_me_min_32_chars_256bit_entropy____"
+set "FLYWAY_ENABLED=true"
+
+REM If DBA already ran bank-package\sql\*.sql:
+REM set "FLYWAY_ENABLED=false"
+
+set "CATALINA_OPTS=%CATALINA_OPTS% -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Karachi"
+set "CATALINA_OPTS=%CATALINA_OPTS% -Dspring.datasource.url=%SPRING_DATASOURCE_URL%"
+set "CATALINA_OPTS=%CATALINA_OPTS% -Dspring.datasource.username=%SPRING_DATASOURCE_USERNAME%"
+set "CATALINA_OPTS=%CATALINA_OPTS% -Dspring.datasource.password=%SPRING_DATASOURCE_PASSWORD%"
+set "CATALINA_OPTS=%CATALINA_OPTS% -Dswitch.imal.mock=%MOCK_IMAL%"
+set "CATALINA_OPTS=%CATALINA_OPTS% -Dswitch.otp.mock=%MOCK_OTP%"
+set "CATALINA_OPTS=%CATALINA_OPTS% -Dswitch.auth.static-token=%SWITCH_STATIC_TOKEN%"
+set "CATALINA_OPTS=%CATALINA_OPTS% -Dswitch.jwt.secret=%JWT_SECRET%"
+set "CATALINA_OPTS=%CATALINA_OPTS% -Dspring.flyway.enabled=%FLYWAY_ENABLED%"
