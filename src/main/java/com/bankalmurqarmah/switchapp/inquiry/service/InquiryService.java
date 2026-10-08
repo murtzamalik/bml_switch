@@ -2,7 +2,6 @@ package com.bankalmurqarmah.switchapp.inquiry.service;
 
 import com.bankalmurqarmah.switchapp.adapter.imal.port.ImalPort;
 import com.bankalmurqarmah.switchapp.shared.config.SwitchProperties;
-import com.bankalmurqarmah.switchapp.shared.security.StrTokenSupport;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -15,19 +14,16 @@ import java.util.*;
 @Service
 public class InquiryService {
     private final ImalPort imalPort;
-    private final StrTokenSupport strTokenSupport;
     private final JdbcTemplate jdbc;
     private final SwitchProperties props;
 
-    public InquiryService(ImalPort imalPort, StrTokenSupport strTokenSupport, JdbcTemplate jdbc, SwitchProperties props) {
+    public InquiryService(ImalPort imalPort, JdbcTemplate jdbc, SwitchProperties props) {
         this.imalPort = imalPort;
-        this.strTokenSupport = strTokenSupport;
         this.jdbc = jdbc;
         this.props = props;
     }
 
     public Map<String, Object> balance(Map<String, Object> body, HttpServletRequest request, String corr) {
-        strTokenSupport.requireCustomer(request, () -> str(body, "strToken"));
         Map<String, Object> bal = imalPort.balanceInquiry(str(body, "fromAccount"));
         Map<String, Object> resp = new LinkedHashMap<>();
         if (!"00".equals(bal.get("code"))) {
@@ -49,7 +45,6 @@ public class InquiryService {
     }
 
     public Map<String, Object> iftTitle(Map<String, Object> body, HttpServletRequest request, String corr) {
-        strTokenSupport.requireCustomer(request, () -> str(body, "strToken"));
         String account = str(body, "Account");
         if (account == null) account = str(body, "fromAccount");
         Map<String, Object> title = imalPort.iftTitleFetch(account);
@@ -77,7 +72,6 @@ public class InquiryService {
     }
 
     public Map<String, Object> ibftTitle(Map<String, Object> body, HttpServletRequest request, String corr) {
-        strTokenSupport.requireCustomer(request, () -> str(body, "strToken"));
         Map<String, Object> title = imalPort.ibftTitleFetch(str(body, "toIMD"), str(body, "toIBAN"), str(body, "toAccount"));
         Map<String, Object> inner = new LinkedHashMap<>();
         inner.put("accountTitle", title.getOrDefault("accountTitle", ""));
@@ -105,7 +99,6 @@ public class InquiryService {
 
     @SuppressWarnings("unchecked")
     public Map<String, Object> cnic(Map<String, Object> body, HttpServletRequest request, String corr) {
-        strTokenSupport.requireCustomer(request, () -> str(body, "strToken"));
         String cnic = str(body, "CNIC");
         Map<String, Object> list = imalPort.listAccountsByCnic(cnic);
         List<Map<String, Object>> accounts = (List<Map<String, Object>>) list.get("accounts");
@@ -113,11 +106,12 @@ public class InquiryService {
         if (accounts == null || accounts.isEmpty()) {
             item = Map.of("Title", "", "AccountNumber", "");
         } else if (accounts.size() == 1) {
-            item = Map.of("Title", accounts.get(0).get("account_title"), "AccountNumber", accounts.get(0).get("account_number"));
+            // Keys from ImalPort.listAccountsByCnic (accountTitle/accountNumber) after onboarding rewrite
+            item = Map.of("Title", accounts.get(0).get("accountTitle"), "AccountNumber", accounts.get(0).get("accountNumber"));
         } else {
             List<Map<String, Object>> items = new ArrayList<>();
             for (var a : accounts) {
-                items.add(Map.of("Title", a.get("account_title"), "AccountNumber", a.get("account_number")));
+                items.add(Map.of("Title", a.get("accountTitle"), "AccountNumber", a.get("accountNumber")));
             }
             item = items;
         }
@@ -131,7 +125,6 @@ public class InquiryService {
     }
 
     public Map<String, Object> ibftStatus(Map<String, Object> body, HttpServletRequest request, String corr) {
-        strTokenSupport.requireCustomer(request, () -> str(body, "strToken"));
         Map<String, Object> st = imalPort.ibftStatus(str(body, "transactionID"), str(body, "stan") != null ? str(body, "stan") : str(body, "intRefNum"));
         Map<String, Object> resp = new LinkedHashMap<>();
         resp.put("Response_Code", st.getOrDefault("code", "14"));
@@ -146,7 +139,6 @@ public class InquiryService {
     }
 
     public Map<String, Object> miniStatement(Map<String, Object> body, HttpServletRequest request, String corr) {
-        strTokenSupport.requireCustomer(request, () -> str(body, "strToken"));
         String acct = str(body, "fromAccount");
         int limit = 10;
         if (str(body, "limit") != null) {
@@ -180,7 +172,6 @@ public class InquiryService {
     }
 
     public Map<String, Object> statement(Map<String, Object> body, HttpServletRequest request, String corr) {
-        strTokenSupport.requireCustomer(request, () -> str(body, "strToken"));
         String acct = str(body, "fromAccount");
         LocalDate from = LocalDate.parse(str(body, "fromDate"));
         LocalDate to = LocalDate.parse(str(body, "toDate"));
@@ -209,7 +200,6 @@ public class InquiryService {
     }
 
     public Map<String, Object> limits(Map<String, Object> body, HttpServletRequest request, String corr) {
-        strTokenSupport.requireCustomer(request, () -> str(body, "strToken"));
         String acct = str(body, "fromAccount");
         BigDecimal used = BigDecimal.ZERO;
         try {
@@ -236,7 +226,6 @@ public class InquiryService {
     }
 
     public Map<String, Object> receipt(Map<String, Object> body, HttpServletRequest request, String corr) {
-        strTokenSupport.requireCustomer(request, () -> str(body, "strToken"));
         String stan = str(body, "stan");
         String txId = str(body, "transactionID");
         List<Map<String, Object>> rows;

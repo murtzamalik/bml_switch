@@ -75,14 +75,20 @@
 
 | Rule | Value |
 |------|--------|
-| Issued by | `POST /api/v1/account/login` → field `strToken` |
+| Issued by | **Deprecated on switch** — AIS owns login; payments still expect body `strToken` until follow-up |
 | On customer-scoped APIs | Body field **`strToken` REQUIRED** |
 | Alias | Header `X-Str-Token` (or `X-Customer-Token`) accepted if body omitted; if both sent, must match |
 | Channel header | Still required: `Authorization: Bearer <channel>` |
 
-**Customer-scoped ops:** login (issues token — no prior strToken), register (no prior), then after login: open (if post-login), payments, inquiries, statements, change-password, account-list, customer-detail, KYC steps that bind customer, limits, receipt, ibft-status.
+**All switch APIs** (except health / swagger) require the same **static non-expiring** header:
 
-**Channel-only (no strToken):** auth/token|refresh, lookups/**, system/health|version, approve-mock, reset-password-mock, otp/send may use channel + CNIC before login — see cookbook.
+```http
+Authorization: Bearer <SWITCH_STATIC_TOKEN>
+```
+
+POC value: `BML-POC-STATIC-TOKEN-2026-AIS` (override via env `SWITCH_STATIC_TOKEN` / `switch.auth.static-token`).
+
+No JWT `/auth/token` exchange is required for AIS. Customer `strToken` is **not** required on payments/inquiry/OTP anymore (AIS auth is outside the switch).
 
 ### strToken expired / missing
 
@@ -176,19 +182,9 @@ Real SMS gateway: Phase 2+ (`MOCK_OTP=false`).
 
 ## 6. Route group → auth matrix
 
-| Group | Channel JWT | Body strToken | Idempotency-Key |
-|-------|-------------|---------------|-----------------|
-| `/auth/token`, `/auth/refresh` | No | No | No |
-| `/auth/logout` | Yes* | Optional | No |
-| `/auth/otp/*` | Yes | Yes (after login) | No |
-| `/lookups/**` | Yes | No | No |
-| `/system/**` | Yes (version); health may be public lite | No | No |
-| `/account/login`, `/register` | Yes | No | No |
-| `/account/open` | Yes | Yes | **Yes** |
-| `/account/*` KYC & detail/list | Yes | Yes (after session) | No |
-| `/account/approve-mock`, `reset-password-mock` | Yes | No | No |
-| `/account/change-password` | Yes | Yes | No |
-| `/payment/*` | Yes | Yes | **Yes** |
-| `/inquiry/*` | Yes | Yes | No |
+| Group | Static Bearer | Body strToken | Idempotency-Key |
+|-------|---------------|---------------|-----------------|
+| `/system/health`, swagger | No | No | No |
+| `/auth/**`, `/lookups/**`, `/account/**`, `/payment/**`, `/inquiry/**` | **Yes** | No | payment open: Yes for IFT/IBFT |
 
 \*Logout accepts refresh_token in body if access already expired.

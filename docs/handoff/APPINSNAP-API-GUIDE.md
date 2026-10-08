@@ -155,19 +155,19 @@ Always check **HTTP status first**, then `Response_Code` when HTTP is 200. Auth 
 6. `POST /payment/ibft` with `otpTicket` + `Idempotency-Key` → flat success + `fee:"0.00"`
 7. Poll `POST /inquiry/ibft-status` until `status=POSTED` (sandbox is immediate)
 
-### 4.3 Onboarding Path A (even CNIC — auto)
+### 4.3 Flow 1 — New account opening
 
-1. Channel token + lookups (`occupations`, `purpose-of-account`, `provinces`, …)
-2. Login (or register after open)
-3. Upload / validate / liveliness / fingers (mock success for even CNIC)
-4. `POST /account/open` + `Idempotency-Key` → `accountNumber` + `IBAN`
-5. Register credentials if needed → login
+1. Channel token  
+2. AIS completes KYC on AIS  
+3. `POST /account/open` (CNIC + `productCode` + `accGl` + customer fields) → `accounts[]` + balances + `cifCreated` / `accountCreated`  
+4. Option P: same product/accGl already open → list only (`accountCreated=false`); different product → create + authorize  
 
-### 4.4 Onboarding Path B (odd CNIC — manual)
+### 4.4 Flow 2 — Existing account mobile registration
 
-1. Same KYC steps; odd last digit → open returns `Response_Code` **`79`**
-2. Sandbox only: `POST /account/approve-mock` with CNIC
-3. Retry `account/open`
+1. AIS registers/logs in user on AIS  
+2. `POST /account/account-list` with CNIC (channel JWT) → `accounts[]` + balances  
+
+KYC Unikrew/login/register/approve-mock are **not** switch APIs. Payments still need `strToken` until a follow-up auth change.
 
 ---
 
@@ -322,14 +322,7 @@ All return envelope:
 | GET | `/api/v1/lookups/banks?active=true&supportsIbft=true` | **Required before IBFT UI** — ≥16 banks |
 | GET | `/api/v1/lookups/banks/{imd}` | Single bank; 404 if unknown |
 | GET | `/api/v1/lookups/purpose-of-payment` | Alias: `/purpose-codes` |
-| GET | `/api/v1/lookups/purpose-of-account` | |
-| GET | `/api/v1/lookups/occupations` | |
 | GET | `/api/v1/lookups/response-codes` | |
-| GET | `/api/v1/lookups/account-types` | |
-| GET | `/api/v1/lookups/provinces` | |
-| GET | `/api/v1/lookups/id-types` | |
-| GET | `/api/v1/lookups/finger-indexes` | |
-| GET | `/api/v1/lookups/onboarding-steps` | |
 | GET | `/api/v1/lookups/branches` | |
 | GET | `/api/v1/lookups/currencies` | |
 | GET | `/api/v1/lookups/app-config` | Public config map |
@@ -354,99 +347,40 @@ Honor `ETag` / `If-None-Match` (304). **Do not hardcode bank lists in the app.**
 
 ---
 
-### 7.4 Account / onboarding — Channel (+ strToken where noted)
+### 7.4 Account / onboarding — Channel JWT only (no strToken)
 
-#### `POST /api/v1/account/login` — Channel
+Login/register/KYC Unikrew/approve-mock/change-password **removed** (AIS owns). See also [required-fields-matrix.md](./required-fields-matrix.md).
 
-See §2.2. Bad password → `14`. Lockout → HTTP 401 + `75`.
+#### `POST /api/v1/account/account-list` — Channel
 
-#### `POST /api/v1/account/register` — Channel
+```json
+{ "CNIC": "4210112345678" }
+```
+
+**Success:** `accounts[]` with `accountNumber`, `IBAN`, `accountTitle`, `productCode`, `accGl`, `cifNo`, `balance`, …
+
+#### `POST /api/v1/account/open` — Channel
 
 ```json
 {
-  "CNIC": "4210112345678",
-  "AccountNo": "0345001234567",
-  "MobileNo": "03001234567",
-  "UserName": "ali.khan",
-  "password": "Sandbox@123"
-}
-```
-
-#### `POST /api/v1/account/customer-detail` — Channel + strToken
-
-```json
-{ "strToken": "...", "CNIC": "4210112345678" }
-```
-
-**Success nest:** `Response.CNIC`, `FULL_NAME`, `Email`, `ADDRESS`, `MOBILE_NUM`, `D_Birth`.
-
-#### `POST /api/v1/account/account-list` — Channel + strToken
-
-```json
-{
-  "strToken": "...",
-  "Request": { "CNIC": "4210112345678" }
-}
-```
-
-**Success:** `Response.CASA_Account_List[]` with `Account_Number`, `Account_IBAN`, `Account_Title`, …
-
-#### `POST /api/v1/account/open` — Channel + strToken + Idempotency-Key
-
-```json
-{
-  "strToken": "...",
-  "CNIC": "4210112345678",
-  "fullName": "ALI KHAN",
-  "MobileNo": "03001234567",
-  "occupationCode": "EMP",
-  "purposeOfAccountCode": "SAV",
-  "productCode": "ASAAN_DIGITAL"
-}
-```
-
-**Success:**
-
-```json
-{
-  "Response_Code": "00",
-  "Response_Desc": "Success",
-  "accountNumber": "0345...",
-  "IBAN": "PK00BMAL...",
-  "accountTitle": "ALI KHAN",
-  "currency": "PKR",
+  "CNIC": "4589652158798",
+  "fullName": "Talha Idris",
+  "MobileNo": "03110537212",
   "productCode": "ASAAN_DIGITAL",
-  "status": "ACTIVE",
-  "correlationId": "..."
+  "accGl": "203153",
+  "dateOfBirth": "1995-10-10",
+  "idDeliveryDate": "2018-01-01",
+  "idExpiryDate": "2030-01-01",
+  "gender": "M",
+  "maritalStatus": "M",
+  "mailingAddress": "HOUSE # 252-D …",
+  "city": "KARACHI"
 }
 ```
 
-**Odd CNIC without approve:** `79` Manual review pending.
+**Success:** `cifNo`, `cifCreated`, `accountCreated`, `accounts[]` (same shape as account-list).
 
-#### KYC mocks (Channel + strToken)
-
-| Path | Role |
-|------|------|
-| `POST /account/upload-documents-unikrew` | OCR + face confidence (even CNIC high) |
-| `POST /account/validate-document-unikrew` | Doc authenticity mock |
-| `POST /account/verify-liveliness` | Liveness mock |
-| `POST /account/verify-fingers` | Biometric mock |
-
-#### `POST /api/v1/account/approve-mock` — Channel (sandbox only)
-
-```json
-{ "CNIC": "4210112345679" }
-```
-
-#### `POST /api/v1/account/change-password` — Channel + strToken
-
-```json
-{
-  "strToken": "...",
-  "currentPassword": "Sandbox@123",
-  "newPassword": "Sandbox@456"
-}
-```
+Option P: same `productCode`/`accGl` already present → `accountCreated=false`. Authorize fail → HTTP 422 + `failedStep=authorizeGeneralAccount`.
 
 #### `POST /api/v1/account/reset-password-mock` — Channel (sandbox)
 

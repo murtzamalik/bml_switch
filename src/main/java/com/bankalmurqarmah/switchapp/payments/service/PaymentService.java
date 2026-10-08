@@ -3,7 +3,6 @@ package com.bankalmurqarmah.switchapp.payments.service;
 import com.bankalmurqarmah.switchapp.adapter.imal.port.ImalPort;
 import com.bankalmurqarmah.switchapp.shared.config.SwitchProperties;
 import com.bankalmurqarmah.switchapp.shared.security.SecurityConfig;
-import com.bankalmurqarmah.switchapp.shared.security.StrTokenSupport;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -21,15 +20,13 @@ import java.util.concurrent.ThreadLocalRandom;
 @Service
 public class PaymentService {
     private final ImalPort imalPort;
-    private final StrTokenSupport strTokenSupport;
     private final JdbcTemplate jdbc;
     private final SwitchProperties props;
     private final ObjectMapper objectMapper;
 
-    public PaymentService(ImalPort imalPort, StrTokenSupport strTokenSupport, JdbcTemplate jdbc,
+    public PaymentService(ImalPort imalPort, JdbcTemplate jdbc,
                           SwitchProperties props, ObjectMapper objectMapper) {
         this.imalPort = imalPort;
-        this.strTokenSupport = strTokenSupport;
         this.jdbc = jdbc;
         this.props = props;
         this.objectMapper = objectMapper;
@@ -37,7 +34,6 @@ public class PaymentService {
 
     @Transactional
     public Map<String, Object> ift(Map<String, Object> body, String idem, HttpServletRequest request, String corr) {
-        strTokenSupport.requireCustomer(request, () -> str(body, "strToken"));
         if (idem == null || idem.isBlank()) {
             throw new SecurityConfig.BusinessException(Map.of(
                     "Response_Code", "30", "Response_Desc", "Idempotency-Key required", "correlationId", corr));
@@ -85,7 +81,6 @@ public class PaymentService {
 
     @Transactional
     public Map<String, Object> ibft(Map<String, Object> body, String idem, HttpServletRequest request, String corr) {
-        strTokenSupport.requireCustomer(request, () -> str(body, "strToken"));
         if (idem == null || idem.isBlank()) {
             throw new SecurityConfig.BusinessException(Map.of(
                     "Response_Code", "30", "Response_Desc", "Idempotency-Key required", "correlationId", corr));

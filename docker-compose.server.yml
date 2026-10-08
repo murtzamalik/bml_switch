@@ -40,7 +40,8 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/bml_switch?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Karachi
       SPRING_DATASOURCE_USERNAME: bml_switch
       SPRING_DATASOURCE_PASSWORD: change_me
-      MOCK_IMAL: "true"
+      # Live SOAP open+IFT; list/balance stay local DB. Override only if needed.
+      MOCK_IMAL: "false"
       MOCK_OTP: "true"
       SANDBOX_MODE: "true"
       JWT_SECRET: change_me_min_32_chars_256bit_entropy____

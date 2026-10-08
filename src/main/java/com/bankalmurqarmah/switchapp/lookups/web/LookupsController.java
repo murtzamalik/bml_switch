@@ -4,12 +4,16 @@ import com.bankalmurqarmah.switchapp.lookups.service.LookupsService;
 import com.bankalmurqarmah.switchapp.shared.kernel.CorrelationIds;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
+/**
+ * Existing file. Callers: AIS via /api/v1/lookups/*. Removes onboarding catalog endpoints.
+ * Keep banks, purpose-of-payment, response-codes, branches, currencies, app-config, version.
+ * Instruction: Implement the iMal Account Open + Existing Registration Plan.
+ */
 @RestController
 @RequestMapping("/api/v1/lookups")
 public class LookupsController {
@@ -43,51 +47,10 @@ public class LookupsController {
                 CorrelationIds.resolve(request));
     }
 
-    @GetMapping("/purpose-of-account")
-    public Map<String, Object> purposeAccount(HttpServletRequest request) {
-        return lookupsService.simpleList("ref_purpose_of_account", "code, description, is_active as isActive",
-                CorrelationIds.resolve(request));
-    }
-
-    @GetMapping("/occupations")
-    public Map<String, Object> occupations(HttpServletRequest request) {
-        return lookupsService.simpleList("ref_occupations", "code, description, is_active as isActive",
-                CorrelationIds.resolve(request));
-    }
-
     @GetMapping("/response-codes")
     public Map<String, Object> responseCodes(HttpServletRequest request) {
         return lookupsService.simpleList("ref_response_codes", "code, message_en as messageEn, severity, is_active as isActive",
                 CorrelationIds.resolve(request));
-    }
-
-    @GetMapping("/account-types")
-    public Map<String, Object> accountTypes(HttpServletRequest request) {
-        return lookupsService.simpleList("ref_account_types", "code, label, is_active as isActive",
-                CorrelationIds.resolve(request));
-    }
-
-    @GetMapping("/provinces")
-    public Map<String, Object> provinces(HttpServletRequest request) {
-        return lookupsService.simpleList("ref_provinces", "code, name_en as nameEn, sort_order as sortOrder, is_active as isActive",
-                CorrelationIds.resolve(request));
-    }
-
-    @GetMapping("/id-types")
-    public Map<String, Object> idTypes(HttpServletRequest request) {
-        return lookupsService.simpleList("ref_id_types", "code, label, is_active as isActive",
-                CorrelationIds.resolve(request));
-    }
-
-    @GetMapping("/finger-indexes")
-    public Map<String, Object> fingers(HttpServletRequest request) {
-        return lookupsService.simpleList("ref_finger_indexes", "index_code as indexCode, label, hand, sort_order as sortOrder, is_active as isActive",
-                CorrelationIds.resolve(request));
-    }
-
-    @GetMapping("/onboarding-steps")
-    public Map<String, Object> steps(HttpServletRequest request) {
-        return lookupsService.orderedSteps(CorrelationIds.resolve(request));
     }
 
     @GetMapping("/branches")

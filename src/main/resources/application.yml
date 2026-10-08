@@ -25,12 +25,35 @@ management:
       enabled: false
 
 switch:
+  auth:
+    # Shared static Bearer token for ALL /api/v1/** APIs (no expiry). Override in prod.
+    # POC shared token (non-expiring). Override in prod via SWITCH_STATIC_TOKEN.
+    static-token: ${SWITCH_STATIC_TOKEN:BML-POC-STATIC-TOKEN-2026-AIS}
   jwt:
     secret: ${JWT_SECRET:change_me_min_32_chars_256bit_entropy____}
     access-ttl-seconds: ${JWT_ACCESS_TTL_SECONDS:900}
     refresh-ttl-seconds: ${JWT_REFRESH_TTL_SECONDS:604800}
   imal:
-    mock: ${MOCK_IMAL:true}
+    # false = live SOAP for open + IFT; account-list and balance stay mock
+    mock: ${MOCK_IMAL:false}
+    company-code: ${IMAL_COMPANY_CODE:1}
+    branch-code: ${IMAL_BRANCH_CODE:209}
+    currency: ${IMAL_CURRENCY:586}
+    cif-type: ${IMAL_CIF_TYPE:1}
+    id-type: ${IMAL_ID_TYPE:1}
+    economic-sector: ${IMAL_ECONOMIC_SECTOR:111}
+    sub-economic-sector: ${IMAL_SUB_ECONOMIC_SECTOR:3456}
+    user-id: ${IMAL_USER_ID:MODEL.B}
+    password: ${IMAL_PASSWORD:MTIz}
+    channel-id: ${IMAL_CHANNEL_ID:1}
+    hash-key: ${IMAL_HASH_KEY:1}
+    lang-id: ${IMAL_LANG_ID:EN}
+    transfer-type: ${IMAL_TRANSFER_TYPE:402}
+    timeout-ms: ${IMAL_TIMEOUT_MS:30000}
+    soap:
+      cif-url: ${IMAL_CIF_URL:http://10.2.60.66:7005/imal_core_cpws_imal_cif/pathservices/}
+      account-url: ${IMAL_ACCOUNT_URL:http://10.2.60.66:7005/imal_core_cpws_imal_acc/pathservices/}
+      transfer-url: ${IMAL_TRANSFER_URL:http://10.2.60.66:7005/imal_core_cpws_imal_trn/pathservices/}
   otp:
     mock: ${MOCK_OTP:true}
     fixed-code: "1234"
@@ -61,4 +84,9 @@ springdoc:
 
 logging:
   level:
+    root: INFO
     com.bankalmurqarmah.switchapp: INFO
+    com.bankalmurqarmah.switchapp.adapter.imal.soap: INFO
+    com.bankalmurqarmah.switchapp.shared.web.ApiAccessLoggingFilter: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [corr=%X{correlationId:-}] - %msg%n"

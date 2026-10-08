@@ -1,0 +1,81 @@
+Request
+
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cif="cifManagementWs">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <cif:validateRetailCif>
+         <serviceContext>
+            <businessArea>Retail</businessArea>
+            <businessDomain>Products</businessDomain>
+            <operationName>validateRetailCif</operationName>
+            <serviceDomain>CifManagement</serviceDomain>
+            <serviceID>1903</serviceID>
+            <version>1.0</version>
+         </serviceContext>
+         <companyCode>1</companyCode>
+         <branchCode>209</branchCode>
+         <cifNo>9052638</cifNo>
+          <requesterContext>
+      <channelID>1</channelID>
+            <hashKey>1</hashKey>
+            <langId>EN</langId>
+            <password>MTIz</password>
+            <requesterTimeStamp>2026-10-09T09:00:00+03:00</requesterTimeStamp>
+            <userID>MODEL.B</userID>
+         </requesterContext>
+         <vendorContext>
+            <license>path solutions</license>
+            <providerCompanyName>path solutions</providerCompanyName>
+            <providerID>654238</providerID>
+         </vendorContext>
+      </cif:validateRetailCif>
+   </soapenv:Body>
+</soapenv:Envelope>
+
+
+Response
+
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+   <soap:Body>
+      <ns0:validateRetailCifResponse xmlns:ns0="cifManagementWs">
+         <requesterContext>
+            <channelID>1</channelID>
+            <hashKey>1</hashKey>
+            <langId>EN</langId>
+            <password>MTIz</password>
+            <requesterTimeStamp>2026-10-09T09:00:00</requesterTimeStamp>
+            <userID>MODEL.B</userID>
+         </requesterContext>
+         <vendorContext>
+            <license>path solutions</license>
+            <providerCompanyName>path solutions</providerCompanyName>
+            <providerID>654238</providerID>
+         </vendorContext>
+         <requestContext>
+            <coreRequestTimeStamp>2026-09-22T15:03:08</coreRequestTimeStamp>
+            <requestID>94e9eeb4-9fd9-40ad-8810-056696319633</requestID>
+         </requestContext>
+         <branchCode>209</branchCode>
+         <cifNo>9052638</cifNo>
+         <companyCode>1</companyCode>
+         <responseContext>
+            <responseID>94e9eeb4-9fd9-40ad-8810-056696319633</responseID>
+            <requestID>94e9eeb4-9fd9-40ad-8810-056696319633</requestID>
+            <coreRequestTimeStamp>2026-09-22T15:03:08</coreRequestTimeStamp>
+            <coreResponseTimeStamp>2026-09-22T15:03:23</coreResponseTimeStamp>
+         </responseContext>
+         <responseServiceContext>
+            <businessArea>Retail</businessArea>
+            <businessDomain>Products</businessDomain>
+            <operationName>validateRetailCif</operationName>
+            <serviceDomain>CifManagement</serviceDomain>
+            <serviceID>1903</serviceID>
+            <version>[APP_VERSION:1401000300003946][PWS_VERSION:1401000300003946]</version>
+         </responseServiceContext>
+         <serviceResponse>
+            <statusCode>0</statusCode>
+            <statusDesc>Success</statusDesc>
+         </serviceResponse>
+      </ns0:validateRetailCifResponse>
+   </soap:Body>
+</soap:Envelope>

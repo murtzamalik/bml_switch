@@ -28,6 +28,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/bml_switch?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Karachi
       SPRING_DATASOURCE_USERNAME: bml_switch
       SPRING_DATASOURCE_PASSWORD: change_me
+      # Local compose = mock iMal. Bank deploy uses docker-compose.server.yml (MOCK_IMAL=false).
       MOCK_IMAL: "true"
       MOCK_OTP: "true"
       SANDBOX_MODE: "true"

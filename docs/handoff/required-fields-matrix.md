@@ -42,49 +42,40 @@ Formats (global):
 
 ---
 
-## 2. Account / onboarding
+## 2. Account / onboarding (channel JWT only)
 
 | Endpoint | Required (mobile) | Optional | Ignored/Switch |
 |----------|-------------------|----------|----------------|
-| `POST /account/login` | UserName **or** CNIC, password (AssanPay LoginRequest fields) | device fields | envelope I |
-| `POST /account/register` | CNIC, AccountNo, MobileNo, UserName, password | device | envelope I |
-| `POST /account/customer-detail` | CNIC, strToken | CustomerID | envelope I |
-| `POST /account/account-list` | CNIC (in Request), strToken | — | envelope I |
-| `POST /account/open` | See §2.1 + Idempotency-Key | email, motherName | product defaults, IBAN bank code |
-| `POST /account/upload-documents-unikrew` | nicFrontImage, nicBackImage, livenessImage (base64 ≤2MB each) | comparison flags | userName/password vendor |
-| `POST /account/validate-document-unikrew` | Base64Image, CNIC | — | userName/password |
-| `POST /account/verify-liveliness` | Base64Image, CNIC, strToken | — | XApi key |
-| `POST /account/verify-fingers` | citizenNumber/CNIC, fingerIndex, fingerTemplate, areaName, strToken | contactNumber | envelope I |
-| `POST /account/approve-mock` | CNIC **or** onboardingApplicationId | — | sandbox profile only |
-| `POST /account/change-password` | strToken, currentPassword, newPassword | — | — |
-| `POST /account/reset-password-mock` | CNIC, newPassword | — | sandbox + channel JWT |
-| `POST /accounts/information` | fromAccount **or** AccountNo, strToken | — | — |
+| `POST /account/open` | CNIC, productCode, accGl, customer fields for iMal CIF/account | address lines, motherName, email, simulateAuthorizeFail (sandbox) | company/branch/currency/requester from `switch.imal.*` |
+| `POST /account/account-list` | CNIC (body or `Request.CNIC`) | — | — |
 
-### 2.1 Account open — full JSON (LOCKED)
+Login/register/KYC Unikrew/liveliness/fingers/approve-mock/change-password are **removed** (AIS owns).
+
+### 2.1 Account open — JSON (LOCKED)
 
 **Request** (`POST /api/v1/account/open`):
 
 ```json
 {
-  "strToken": "<customer-jwt>",
-  "CNIC": "4210112345678",
-  "fullName": "ALI KHAN",
-  "MobileNo": "03001234567",
-  "dateOfBirth": "1990-01-01",
-  "fatherName": "AHMED KHAN",
-  "motherName": "",
-  "occupationCode": "EMP",
-  "purposeOfAccountCode": "SAV",
-  "mailingAddress": "House 123, Street 4, Karachi",
-  "city": "Karachi",
-  "provinceCode": "SD",
-  "email": "ali.khan@example.com",
+  "CNIC": "4589652158798",
+  "fullName": "Talha Idris",
+  "firstName": "Talha",
+  "lastName": "Idris",
+  "MobileNo": "03110537212",
+  "dateOfBirth": "1995-10-10",
+  "idDeliveryDate": "2018-01-01",
+  "idExpiryDate": "2030-01-01",
+  "gender": "M",
+  "maritalStatus": "M",
+  "email": "demot5054@gmail.com",
+  "mailingAddress": "HOUSE # 252-D MOHALLA WADHAT COLONY TAXILA",
+  "city": "KARACHI",
   "productCode": "ASAAN_DIGITAL",
-  "onboardingApplicationId": "<uuid-from-kyc-flow-optional>"
+  "accGl": "203153"
 }
 ```
 
-Header: `Idempotency-Key: <uuid>`, `Authorization: Bearer <channel>`.
+Header: `Authorization: Bearer <channel>` only (no Idempotency-Key, no strToken).
 
 **Success response:**
 
@@ -93,16 +84,34 @@ Header: `Idempotency-Key: <uuid>`, `Authorization: Bearer <channel>`.
   "Response_Code": "00",
   "Response_Desc": "Success",
   "correlationId": "...",
-  "accountNumber": "0345001234567",
-  "IBAN": "PK00BMAL0000000345001234567",
-  "accountTitle": "ALI KHAN",
-  "currency": "PKR",
-  "productCode": "ASAAN_DIGITAL",
-  "status": "ACTIVE"
+  "cifNo": "9052640",
+  "cifCreated": true,
+  "accountCreated": true,
+  "accounts": [
+    {
+      "accountNumber": "0209586020000002",
+      "IBAN": "PK32BMLP0209586020000002",
+      "accountTitle": "Talha Idris",
+      "productCode": "ASAAN_DIGITAL",
+      "accGl": "203153",
+      "cifNo": "9052640",
+      "currency": "PKR",
+      "status": "ACTIVE",
+      "balance": "0.00"
+    }
+  ]
 }
 ```
 
-Blocked KYC → HTTP 200, `Response_Code=77` or `79` (manual review).
+Step failures return HTTP 4xx/5xx with `failedStep` (`createRetailCif` | `validateRetailCif` | `createGeneralAccount` | `authorizeGeneralAccount`).
+
+### 2.2 Account list (Flow 2)
+
+```json
+{ "CNIC": "4210112345678" }
+```
+
+Same `accounts[]` shape as open (no cifCreated/accountCreated flags).
 
 ---
 

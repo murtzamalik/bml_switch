@@ -1,0 +1,87 @@
+Request
+
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:gen="generalAccountsWs">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <gen:authorizeGeneralAccount>
+         <serviceContext>
+            <businessArea>Retail</businessArea>
+            <businessDomain>Products</businessDomain>
+            <operationName>authorizeGeneralAccount</operationName>
+            <serviceDomain>GeneralAccounts</serviceDomain>
+            <serviceID>809</serviceID>
+            <version>1.0</version>
+         </serviceContext>
+         <companyCode>1</companyCode>
+         <branchCode>209</branchCode>
+         <waiveCharges>0</waiveCharges>
+         <account>
+            <additionalRef>0209586020000001</additionalRef>
+         </account>
+         <requesterContext>
+            <channelID>1</channelID>
+            <hashKey>1</hashKey>
+            <langId>EN</langId>
+            <password>MTIz</password>
+            <requesterTimeStamp>2026-10-09T09:00:00+03:00</requesterTimeStamp>
+            <userID>MODEL.B</userID>
+         </requesterContext>
+         <vendorContext>
+            <license>Copyright 2018 Azentio. All Rights Reserved</license>
+            <providerCompanyName>Azentio</providerCompanyName>
+            <providerID>IMAL</providerID>
+         </vendorContext>
+      </gen:authorizeGeneralAccount>
+   </soapenv:Body>
+</soapenv:Envelope>
+
+Response
+
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+   <soap:Body>
+      <ns0:authorizeGeneralAccountResponse xmlns:ns0="generalAccountsWs">
+         <requesterContext>
+            <channelID>1</channelID>
+            <hashKey>1</hashKey>
+            <langId>EN</langId>
+            <password>MTIz</password>
+            <requesterTimeStamp>2026-10-09T09:00:00</requesterTimeStamp>
+            <userID>MODEL.B</userID>
+         </requesterContext>
+         <vendorContext>
+            <license>Copyright 2018 Azentio. All Rights Reserved</license>
+            <providerCompanyName>Azentio</providerCompanyName>
+            <providerID>IMAL</providerID>
+         </vendorContext>
+         <requestContext>
+            <coreRequestTimeStamp>2026-09-22T15:12:55</coreRequestTimeStamp>
+            <requestID>0ea4312e-614c-4c06-9d2d-5d629241ce11</requestID>
+         </requestContext>
+         <account>
+            <additionalRef>0209586020000001</additionalRef>
+         </account>
+         <branchCode>209</branchCode>
+         <companyCode>1</companyCode>
+         <reportDetailsList/>
+         <responseContext>
+            <responseID>0ea4312e-614c-4c06-9d2d-5d629241ce11</responseID>
+            <requestID>0ea4312e-614c-4c06-9d2d-5d629241ce11</requestID>
+            <coreRequestTimeStamp>2026-09-22T15:12:55</coreRequestTimeStamp>
+            <coreResponseTimeStamp>2026-09-22T15:13:03</coreResponseTimeStamp>
+         </responseContext>
+         <responseServiceContext>
+            <businessArea>Retail</businessArea>
+            <businessDomain>Products</businessDomain>
+            <operationName>authorizeGeneralAccount</operationName>
+            <serviceDomain>GeneralAccounts</serviceDomain>
+            <serviceID>809</serviceID>
+            <version>[APP_VERSION:1401000300003946][PWS_VERSION:1401000300003946]</version>
+         </responseServiceContext>
+         <serviceResponse>
+            <statusCode>0</statusCode>
+            <statusDesc>Success</statusDesc>
+         </serviceResponse>
+         <waiveCharges>0</waiveCharges>
+      </ns0:authorizeGeneralAccountResponse>
+   </soap:Body>
+</soap:Envelope>

@@ -1,0 +1,145 @@
+Request
+
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:gen="generalAccountsWs">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <gen:createGeneralAccount>
+         <serviceContext>
+            <businessArea>Retail</businessArea>
+            <businessDomain>Products</businessDomain>
+            <operationName>createGeneralAccount</operationName>
+            <serviceDomain>GeneralAccounts</serviceDomain>
+            <serviceID>806</serviceID>
+            <version>1.0</version>
+         </serviceContext>
+         <companyCode>1</companyCode>
+         <branchCode>209</branchCode>
+         <branch>209</branch>
+         <currency>586</currency>
+         <accGl>203153</accGl>
+         <cifNo>9052638</cifNo>
+         <accountDetails>
+            <fullName>Talha Idris</fullName>
+            <economicSector>111</economicSector>
+            <subEconomicSector>3456</subEconomicSector>
+            <addressesList>
+               <address>
+                  <lineNo>0</lineNo>
+                  <printStatement>0</printStatement>
+                  <contactNameEn>ABDUL HASEEB</contactNameEn>
+                  <addressEn1>HOUSE # 252-D MOHALLA WADHAT COLONY TAXILA DISTT</addressEn1>
+                  <addressEn2>R AWALPINDI </addressEn2>
+                  <cityEn>KARACHI</cityEn>
+                  <countryEn>586</countryEn>
+                  <homeTel>03110537212</homeTel>
+                  <email></email>
+                  <postalZipCode>75210</postalZipCode>
+                  <defaultAddress>Y</defaultAddress>
+                  <permanentAddress>Y</permanentAddress>
+               </address>
+            </addressesList>
+         </accountDetails>
+         <!--Optional:-->
+         <pointDetails>
+            <accountsign>C</accountsign>
+         </pointDetails>
+         <requesterContext>
+            <channelID>1</channelID>
+            <hashKey>1</hashKey>
+            <langId>EN</langId>
+            <password>MTIz</password>
+            <requesterTimeStamp>2018-10-09T09:00:00+03:00</requesterTimeStamp>
+            <userID>MODEL.B</userID>
+         </requesterContext>
+         <vendorContext>
+            <license>Copyright 2018 Path Solutions.</license>
+            <providerCompanyName>path solutions</providerCompanyName>
+            <providerID>IMAL</providerID>
+         </vendorContext>
+      </gen:createGeneralAccount>
+   </soapenv:Body>
+</soapenv:Envelope>
+
+Response
+
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+   <soap:Body>
+      <ns0:createGeneralAccountResponse xmlns:ns0="generalAccountsWs">
+         <requesterContext>
+            <channelID>1</channelID>
+            <hashKey>1</hashKey>
+            <langId>EN</langId>
+            <password>MTIz</password>
+            <requesterTimeStamp>2018-10-09T09:00:00</requesterTimeStamp>
+            <userID>MODEL.B</userID>
+         </requesterContext>
+         <vendorContext>
+            <license>Copyright 2018 Path Solutions.</license>
+            <providerCompanyName>path solutions</providerCompanyName>
+            <providerID>IMAL</providerID>
+         </vendorContext>
+         <requestContext>
+            <coreRequestTimeStamp>2026-09-22T15:11:16</coreRequestTimeStamp>
+            <requestID>8103519d-a99a-4c82-ba44-4a747f6f75c7</requestID>
+         </requestContext>
+         <accGl>203153</accGl>
+         <account>
+            <accGl>203153</accGl>
+            <additionalRef>0209586020000001</additionalRef>
+            <branch>209</branch>
+            <cif>9052638</cif>
+            <currency>586</currency>
+            <ibanAccNo>PK59BMLP0209586020000001</ibanAccNo>
+            <serialNo>0</serialNo>
+         </account>
+         <accountDetails>
+            <addressesList>
+               <address>
+                  <addressEn1>HOUSE # 252-D MOHALLA WADHAT COLONY TAXILA DISTT</addressEn1>
+                  <addressEn2>R AWALPINDI</addressEn2>
+                  <cityEn>KARACHI</cityEn>
+                  <contactNameEn>ABDUL HASEEB</contactNameEn>
+                  <countryEn>586</countryEn>
+                  <defaultAddress>Y</defaultAddress>
+                  <email/>
+                  <homeTel>03110537212</homeTel>
+                  <lineNo>0</lineNo>
+                  <permanentAddress>Y</permanentAddress>
+                  <postalZipCode>75210</postalZipCode>
+                  <printStatement>0</printStatement>
+               </address>
+            </addressesList>
+            <economicSector>111</economicSector>
+            <fullName>Talha Idris</fullName>
+            <subEconomicSector>3456</subEconomicSector>
+         </accountDetails>
+         <branch>209</branch>
+         <branchCode>209</branchCode>
+         <cifNo>9052638</cifNo>
+         <companyCode>1</companyCode>
+         <currency>586</currency>
+         <pointDetails>
+            <accountsign>C</accountsign>
+         </pointDetails>
+         <reportDetailsList/>
+         <responseContext>
+            <responseID>8103519d-a99a-4c82-ba44-4a747f6f75c7</responseID>
+            <requestID>8103519d-a99a-4c82-ba44-4a747f6f75c7</requestID>
+            <coreRequestTimeStamp>2026-09-22T15:11:16</coreRequestTimeStamp>
+            <coreResponseTimeStamp>2026-09-22T15:11:20</coreResponseTimeStamp>
+         </responseContext>
+         <responseServiceContext>
+            <businessArea>Retail</businessArea>
+            <businessDomain>Products</businessDomain>
+            <operationName>createGeneralAccount</operationName>
+            <serviceDomain>GeneralAccounts</serviceDomain>
+            <serviceID>806</serviceID>
+            <version>[APP_VERSION:1401000300003946][PWS_VERSION:1401000300003946]</version>
+         </responseServiceContext>
+         <serviceResponse>
+            <statusCode>0</statusCode>
+            <statusDesc>Success</statusDesc>
+         </serviceResponse>
+      </ns0:createGeneralAccountResponse>
+   </soap:Body>
+</soap:Envelope>

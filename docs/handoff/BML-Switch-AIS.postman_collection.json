@@ -1,0 +1,564 @@
+{
+  "info": {
+    "_postman_id": "bml-switch-ais-2026",
+    "name": "BML Switch — AppInSnap (AIS)",
+    "description": "Bank Al Murqarmah Integration Switch — APIs for AppInSnap.\n\n**Auth (all APIs except health):**\n`Authorization: Bearer {{staticToken}}`\nPOC token (non-expiring): `BML-POC-STATIC-TOKEN-2026-AIS`\n\n**No** `/auth/token` and **no** `/account/login` — AIS owns customer login/KYC.\n\n**Core flows**\n1. Flow 1 — `POST /account/open` (live iMal CIF + account)\n2. Flow 2 — `POST /account/account-list` by CNIC (balances from switch DB)\n\n**Base URL:** set `baseUrl` (local `http://localhost:8080` or server `http://<host>:18080`).\n\nDocs: `docs/handoff/APPINSNAP-API-GUIDE.md`, `smoke-curl.md`, `required-fields-matrix.md`",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{staticToken}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "staticToken", "value": "BML-POC-STATIC-TOKEN-2026-AIS" },
+    { "key": "cnicExisting", "value": "4210112345678" },
+    { "key": "cnicNew", "value": "4589652158800" },
+    { "key": "fromAccount", "value": "0345001234567" },
+    { "key": "toAccountIft", "value": "0345001234568" },
+    { "key": "imd", "value": "601004" },
+    { "key": "toIban", "value": "PK12MEZN0000001234567890" },
+    { "key": "toAccountIbft", "value": "1234567890" },
+    { "key": "otpReference", "value": "" },
+    { "key": "otpTicket", "value": "" },
+    { "key": "stan", "value": "" },
+    { "key": "accGl", "value": "203153" },
+    { "key": "productCode", "value": "ASAAN_DIGITAL" }
+  ],
+  "item": [
+    {
+      "name": "00 — Setup",
+      "description": "Health is public (no Bearer). Everything else uses collection Bearer {{staticToken}}.",
+      "item": [
+        {
+          "name": "GET system/health",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Correlation-Id", "value": "{{$guid}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/system/health",
+            "description": "Public. Expect status=UP. Check mockImal — bank deploy should be false (live SOAP open/IFT)."
+          }
+        },
+        {
+          "name": "GET system/version",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Correlation-Id", "value": "{{$guid}}" }
+            ],
+            "url": "{{baseUrl}}/api/v1/system/version"
+          }
+        }
+      ]
+    },
+    {
+      "name": "01 — Flow 1 Open account",
+      "description": "New customer onboarding. AIS already did KYC/login. Switch creates CIF (if needed) + general account + authorize (Option P).",
+      "item": [
+        {
+          "name": "POST account/open",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200 or 422', function () { pm.expect([200,422]).to.include(pm.response.code); });",
+                  "var j = pm.response.json();",
+                  "if (j.accounts && j.accounts.length) {",
+                  "  pm.collectionVariables.set('fromAccount', j.accounts[0].accountNumber);",
+                  "  pm.collectionVariables.set('cnicExisting', pm.collectionVariables.get('cnicNew'));",
+                  "}",
+                  "if (j.cifNo) { console.log('cifNo=' + j.cifNo); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Correlation-Id", "value": "{{$guid}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"CNIC\": \"{{cnicNew}}\",\n  \"fullName\": \"Talha Idris\",\n  \"firstName\": \"Talha\",\n  \"lastName\": \"Idris\",\n  \"MobileNo\": \"03110537212\",\n  \"dateOfBirth\": \"1995-10-10\",\n  \"idDeliveryDate\": \"2018-01-01\",\n  \"idExpiryDate\": \"2030-01-01\",\n  \"gender\": \"M\",\n  \"maritalStatus\": \"M\",\n  \"email\": \"demot5054@gmail.com\",\n  \"mailingAddress\": \"HOUSE # 252-D MOHALLA WADHAT COLONY TAXILA\",\n  \"city\": \"KARACHI\",\n  \"productCode\": \"{{productCode}}\",\n  \"accGl\": \"{{accGl}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/account/open",
+            "description": "Required: CNIC, productCode, accGl, customer fields for iMal.\n\nSuccess: Response_Code=00, cifNo, cifCreated, accountCreated, accounts[].\n\nOption P: same product already on CIF → accountCreated=false.\n\nAuthorize fail → HTTP 422 + failedStep=authorizeGeneralAccount.\n\nUse a fresh unused CNIC in cnicNew for each real open."
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 — Flow 2 Account list (existing)",
+      "description": "After AIS login — list accounts + balances by CNIC only.",
+      "item": [
+        {
+          "name": "POST account/account-list",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "if (j.accounts && j.accounts.length) {",
+                  "  pm.collectionVariables.set('fromAccount', j.accounts[0].accountNumber);",
+                  "  if (j.accounts.length > 1) {",
+                  "    pm.collectionVariables.set('toAccountIft', j.accounts[1].accountNumber);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Correlation-Id", "value": "{{$guid}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"CNIC\": \"{{cnicExisting}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/account/account-list",
+            "description": "Body: { \"CNIC\": \"13 digits\" } (also accepts Request.CNIC).\n\nReturns accounts[] with accountNumber, IBAN, accountTitle, productCode, accGl, cifNo, balance, status."
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 — Lookups",
+      "description": "Do not hardcode banks / purpose codes in the mobile app.",
+      "item": [
+        {
+          "name": "GET lookups/banks",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "var j = pm.response.json();",
+                  "var meezan = (j.items || []).find(function (b) { return b.imd === '601004'; });",
+                  "if (meezan) { pm.collectionVariables.set('imd', meezan.imd); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/lookups/banks?active=true&supportsIbft=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "lookups", "banks"],
+              "query": [
+                { "key": "active", "value": "true" },
+                { "key": "supportsIbft", "value": "true" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET lookups/banks/{imd}",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/lookups/banks/{{imd}}"
+          }
+        },
+        {
+          "name": "GET lookups/purpose-of-payment",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/lookups/purpose-of-payment"
+          }
+        },
+        {
+          "name": "GET lookups/response-codes",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/lookups/response-codes"
+          }
+        },
+        {
+          "name": "GET lookups/branches",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/lookups/branches"
+          }
+        },
+        {
+          "name": "GET lookups/currencies",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/lookups/currencies"
+          }
+        },
+        {
+          "name": "GET lookups/app-config",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/lookups/app-config"
+          }
+        },
+        {
+          "name": "GET lookups/version",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/v1/lookups/version"
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 — Inquiry",
+      "item": [
+        {
+          "name": "POST inquiry/balance",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Correlation-Id", "value": "{{$guid}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromAccount\": \"{{fromAccount}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/inquiry/balance",
+            "description": "Balance from switch local ledger (mock read). Not live iMal."
+          }
+        },
+        {
+          "name": "POST inquiry/ift-title",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Correlation-Id", "value": "{{$guid}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Account\": \"{{toAccountIft}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/inquiry/ift-title"
+          }
+        },
+        {
+          "name": "POST inquiry/ibft-title",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Correlation-Id", "value": "{{$guid}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"toIMD\": \"{{imd}}\",\n  \"toIBAN\": \"{{toIban}}\",\n  \"toAccount\": \"{{toAccountIbft}}\",\n  \"amount\": \"25.00\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/inquiry/ibft-title"
+          }
+        },
+        {
+          "name": "POST inquiry/cnic",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Correlation-Id", "value": "{{$guid}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"CNIC\": \"{{cnicExisting}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/inquiry/cnic"
+          }
+        },
+        {
+          "name": "POST inquiry/ibft-status",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Correlation-Id", "value": "{{$guid}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stan\": \"{{stan}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/inquiry/ibft-status"
+          }
+        },
+        {
+          "name": "POST inquiry/mini-statement",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Correlation-Id", "value": "{{$guid}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromAccount\": \"{{fromAccount}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/inquiry/mini-statement"
+          }
+        },
+        {
+          "name": "POST inquiry/statement",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Correlation-Id", "value": "{{$guid}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromAccount\": \"{{fromAccount}}\",\n  \"fromDate\": \"2026-01-01\",\n  \"toDate\": \"2026-12-31\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/inquiry/statement"
+          }
+        },
+        {
+          "name": "POST inquiry/limits",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Correlation-Id", "value": "{{$guid}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromAccount\": \"{{fromAccount}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/inquiry/limits"
+          }
+        },
+        {
+          "name": "POST inquiry/receipt",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Correlation-Id", "value": "{{$guid}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stan\": \"{{stan}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/inquiry/receipt"
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 — Payments",
+      "description": "IFT uses live iMal SOAP when MOCK_IMAL=false. Header Idempotency-Key required (UUID).",
+      "item": [
+        {
+          "name": "POST payment/ift",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var j = pm.response.json();",
+                  "var stan = j.return && j.return.stan ? j.return.stan : j.stan;",
+                  "if (stan) { pm.collectionVariables.set('stan', String(stan)); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{$guid}}" },
+              { "key": "X-Correlation-Id", "value": "{{$guid}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromAccount\": \"{{fromAccount}}\",\n  \"toAccount\": \"{{toAccountIft}}\",\n  \"amount\": \"100.00\",\n  \"PurposeOfPayment\": \"FAM\",\n  \"Description\": \"AIS demo IFT\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/payment/ift",
+            "description": "Same-bank transfer. Requires Idempotency-Key. Live SOAP when mockImal=false."
+          }
+        },
+        {
+          "name": "POST auth/otp/send (before IBFT)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var j = pm.response.json();",
+                  "if (j.otpReference) { pm.collectionVariables.set('otpReference', j.otpReference); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Correlation-Id", "value": "{{$guid}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"CNIC\": \"{{cnicExisting}}\",\n  \"MobileNo\": \"03001234567\",\n  \"purpose\": \"IBFT\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/otp/send",
+            "description": "Mock OTP = 1234 when MOCK_OTP=true."
+          }
+        },
+        {
+          "name": "POST auth/otp/verify (before IBFT)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var j = pm.response.json();",
+                  "if (j.otpTicket) { pm.collectionVariables.set('otpTicket', j.otpTicket); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Correlation-Id", "value": "{{$guid}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"otpReference\": \"{{otpReference}}\",\n  \"otp\": \"1234\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/otp/verify"
+          }
+        },
+        {
+          "name": "POST payment/ibft",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var j = pm.response.json();",
+                  "var stan = j.return && j.return.stan ? j.return.stan : j.stan;",
+                  "if (stan) { pm.collectionVariables.set('stan', String(stan)); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{$guid}}" },
+              { "key": "X-Correlation-Id", "value": "{{$guid}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromAccount\": \"{{fromAccount}}\",\n  \"toIMD\": \"{{imd}}\",\n  \"toIBAN\": \"{{toIban}}\",\n  \"toAccount\": \"{{toAccountIbft}}\",\n  \"amount\": \"25.00\",\n  \"PurposeOfPayment\": \"FAM\",\n  \"Description\": \"AIS demo IBFT\",\n  \"otpTicket\": \"{{otpTicket}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/payment/ibft",
+            "description": "Inter-bank. Run OTP send then verify first. Idempotency-Key required. Missing otpTicket → code 78."
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 — Auth (optional / legacy)",
+      "description": "Not required for AIS happy path. Static Bearer already authenticates all APIs.",
+      "item": [
+        {
+          "name": "POST auth/token (optional)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Correlation-Id", "value": "{{$guid}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"client_id\": \"appinsnap-sandbox\",\n  \"client_secret\": \"change_me_sandbox_secret\",\n  \"grant_type\": \"client_credentials\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/token",
+            "description": "Optional. AIS should use staticToken on all APIs."
+          }
+        },
+        {
+          "name": "POST auth/refresh (optional)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Correlation-Id", "value": "{{$guid}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/refresh"
+          }
+        },
+        {
+          "name": "POST auth/logout (optional)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Correlation-Id", "value": "{{$guid}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"revokeCustomerSession\": false\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/logout"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -11,25 +11,21 @@ import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import org.springframework.web.util.ContentCachingRequestWrapper;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Set;
 
 /**
- * Validates customer strToken from body (required) or X-Str-Token alias for customer-scoped routes.
- * Actual body parsing of strToken is also done in controllers; this filter enforces presence for protected paths.
+ * Existing filter. Spring Security filter chain. CHANNEL_ONLY now includes open + account-list.
+ * Instruction: Implement the iMal Account Open + Existing Registration Plan.
  */
 @Component
 public class CustomerRouteGuardFilter extends OncePerRequestFilter {
     private static final Set<String> CHANNEL_ONLY = Set.of(
             "/api/v1/auth/logout",
-            "/api/v1/account/approve-mock",
-            "/api/v1/account/reset-password-mock",
-            "/api/v1/account/login",
-            "/api/v1/account/register",
+            "/api/v1/account/open",
+            "/api/v1/account/account-list",
             "/api/v1/system/version"
     );
 
@@ -49,15 +45,13 @@ public class CustomerRouteGuardFilter extends OncePerRequestFilter {
         if (path.startsWith("/api/v1/auth/token") || path.startsWith("/api/v1/auth/refresh")) return true;
         if (path.equals("/api/v1/system/health")) return true;
         if (CHANNEL_ONLY.contains(path)) return true;
-        if (path.startsWith("/api/v1/auth/otp/")) return false; // needs strToken
+        if (path.startsWith("/api/v1/auth/otp/")) return false;
         return false;
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-        // Controllers validate strToken; filter only ensures channel auth already set.
-        // Customer token validation lives in StrTokenSupport used by services.
         filterChain.doFilter(request, response);
     }
 

@@ -124,13 +124,14 @@ public class AuthService {
     }
 
     public Map<String, Object> otpSend(Map<String, Object> body, HttpServletRequest request, String corr) {
-        Claims customer = strTokenSupport.requireCustomer(request, () -> str(body, "strToken"));
+        // Auth is static Bearer header; resolve customer from CNIC/mobile for OTP storage.
+        String customerId = resolveCustomerId(body);
         String ref = "OTP-MOCK-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
         Instant exp = Instant.now().plusSeconds(120);
         jdbc.update("""
                 INSERT INTO otp_challenges(id, customer_id, otp_reference, purpose, verified, expires_at)
                 VALUES (?,?,?,?,0,?)
-                """, UUID.randomUUID().toString(), customer.get("customerId"), ref,
+                """, UUID.randomUUID().toString(), customerId, ref,
                 str(body, "purpose") != null ? str(body, "purpose") : "IBFT",
                 java.sql.Timestamp.from(exp));
         Map<String, Object> resp = new LinkedHashMap<>();
@@ -143,7 +144,7 @@ public class AuthService {
     }
 
     public Map<String, Object> otpVerify(Map<String, Object> body, HttpServletRequest request, String corr) {
-        Claims customer = strTokenSupport.requireCustomer(request, () -> str(body, "strToken"));
+        String customerId = resolveCustomerId(body);
         String otp = str(body, "otp");
         String ref = str(body, "otpReference");
         if (!props.getOtp().isMock() || !props.getOtp().getFixedCode().equals(otp)) {
@@ -154,7 +155,7 @@ public class AuthService {
         }
         var rows = jdbc.queryForList("""
                 SELECT id FROM otp_challenges WHERE otp_reference=? AND customer_id=? AND verified=0 AND expires_at > CURRENT_TIMESTAMP(3)
-                """, ref, customer.get("customerId"));
+                """, ref, customerId);
         if (rows.isEmpty()) {
             throw new SecurityConfig.BusinessException(Map.of(
                     "Response_Code", "78",
@@ -172,6 +173,28 @@ public class AuthService {
         resp.put("otpTicket", ticket);
         resp.put("correlationId", corr);
         return resp;
+    }
+
+    /** Resolve customer for OTP without strToken — CNIC/mobile or seeded sandbox customer. */
+    private String resolveCustomerId(Map<String, Object> body) {
+        String cnic = str(body, "CNIC");
+        if (cnic != null && !cnic.isBlank()) {
+            cnic = cnic.replaceAll("[^0-9]", "");
+            var rows = jdbc.queryForList("SELECT id FROM customers WHERE cnic=? AND deleted_at IS NULL", cnic);
+            if (!rows.isEmpty()) {
+                return String.valueOf(rows.get(0).get("id"));
+            }
+        }
+        String mobile = str(body, "MobileNo");
+        if (mobile == null) mobile = str(body, "mobile");
+        if (mobile != null && !mobile.isBlank()) {
+            var rows = jdbc.queryForList("SELECT id FROM customers WHERE mobile=? AND deleted_at IS NULL", mobile);
+            if (!rows.isEmpty()) {
+                return String.valueOf(rows.get(0).get("id"));
+            }
+        }
+        // Seeded sandbox customer (ali.khan)
+        return "22222222-2222-2222-2222-222222222222";
     }
 
     private RuntimeException unauthorizedChannel(String corr) {

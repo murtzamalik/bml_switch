@@ -1,0 +1,139 @@
+Request
+
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cif="cifManagementWs">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <cif:createRetailCif>
+         <serviceContext>
+            <businessArea>Retail</businessArea>
+            <businessDomain>Products</businessDomain>
+            <operationName>createRetailCif</operationName>
+            <serviceDomain>CifManagement</serviceDomain>
+            <serviceID>1901</serviceID>
+            <version>1.0</version>
+         </serviceContext>
+         <companyCode>1</companyCode>
+         <branchCode>209</branchCode>
+         <cifDetails>
+            <cifType>1</cifType>
+            <idType>1</idType>
+            <idNumber>4589652158745</idNumber>
+            <idDeliveryDate>2018-01-01</idDeliveryDate>
+            <dateOfBirth>1995-10-10</dateOfBirth>
+            <idExpiryDate>2030-01-01</idExpiryDate>
+            <maritalStatus>M</maritalStatus>
+            <gender>M</gender>
+            <language>L</language>
+            <fullName>Talha Idris</fullName>
+            <nationality>586</nationality>
+            <country>586</country>
+            <firstName>Talha</firstName>
+            <lastName>Idris</lastName>
+            <motherFirstName>TEST</motherFirstName>
+            <motherLastName>TEST</motherLastName>
+            <addressList>
+               <addressDetailsCreateDC>
+                  <mobile>20145210235</mobile>
+                  <email>demot5054@gmail.com</email>
+                  <country>586</country>
+               </addressDetailsCreateDC>
+            </addressList>
+            <modeOfStatementDelivery>N</modeOfStatementDelivery>
+            <statement>N</statement>
+         </cifDetails>
+         <additionalDetails>
+            <ranking>1</ranking>
+            <monthlyIncome>50000</monthlyIncome>
+            <kyc>Y</kyc>
+         </additionalDetails>
+         <requesterContext>
+            <langId>EN</langId>
+            <password>MTIz</password>
+            <requesterTimeStamp>2026-09-22T16:23:34+05:00</requesterTimeStamp>
+            <userID>MODEL.B</userID>
+         </requesterContext>
+         <vendorContext>
+            <license>Copyright 2018 Azentio. All Rights Reserved</license>
+            <providerCompanyName>Azentio</providerCompanyName>
+            <providerID>IMAL</providerID>
+         </vendorContext>
+      </cif:createRetailCif>
+   </soapenv:Body>
+</soapenv:Envelope>
+
+Response
+
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+   <soap:Body>
+      <ns0:createRetailCifResponse xmlns:ns0="cifManagementWs">
+         <requesterContext>
+            <langId>EN</langId>
+            <password>MTIz</password>
+            <requesterTimeStamp>2026-09-22T16:23:34</requesterTimeStamp>
+            <userID>MODEL.B</userID>
+         </requesterContext>
+         <vendorContext>
+            <license>Copyright 2018 Azentio. All Rights Reserved</license>
+            <providerCompanyName>Azentio</providerCompanyName>
+            <providerID>IMAL</providerID>
+         </vendorContext>
+         <requestContext>
+            <coreRequestTimeStamp>2026-09-22T15:07:34</coreRequestTimeStamp>
+            <requestID>42aa432f-aa7a-48d9-b7aa-233fc54cd2e9</requestID>
+         </requestContext>
+         <additionalDetails>
+            <kyc>Y</kyc>
+            <monthlyIncome>50000</monthlyIncome>
+            <ranking>1</ranking>
+         </additionalDetails>
+         <branchCode>209</branchCode>
+         <cifDetails>
+            <addressList>
+               <addressDetailsCreateDC>
+                  <country>586</country>
+                  <email>demot5054@gmail.com</email>
+                  <mobile>20145210235</mobile>
+               </addressDetailsCreateDC>
+            </addressList>
+            <cifType>1</cifType>
+            <country>586</country>
+            <dateOfBirth>1995-10-10</dateOfBirth>
+            <firstName>Talha</firstName>
+            <fullName>Talha Idris</fullName>
+            <gender>M</gender>
+            <idDeliveryDate>2018-01-01</idDeliveryDate>
+            <idExpiryDate>2030-01-01</idExpiryDate>
+            <idNumber>4589652158745</idNumber>
+            <idType>1</idType>
+            <language>L</language>
+            <lastName>Idris</lastName>
+            <maritalStatus>M</maritalStatus>
+            <modeOfStatementDelivery>N</modeOfStatementDelivery>
+            <motherFirstName>TEST</motherFirstName>
+            <motherLastName>TEST</motherLastName>
+            <nationality>586</nationality>
+            <statement>N</statement>
+         </cifDetails>
+         <cifNo>9052639</cifNo>
+         <companyCode>1</companyCode>
+         <responseContext>
+            <responseID>42aa432f-aa7a-48d9-b7aa-233fc54cd2e9</responseID>
+            <requestID>42aa432f-aa7a-48d9-b7aa-233fc54cd2e9</requestID>
+            <coreRequestTimeStamp>2026-09-22T15:07:34</coreRequestTimeStamp>
+            <coreResponseTimeStamp>2026-09-22T15:07:39</coreResponseTimeStamp>
+         </responseContext>
+         <responseServiceContext>
+            <businessArea>Retail</businessArea>
+            <businessDomain>Products</businessDomain>
+            <operationName>createRetailCif</operationName>
+            <serviceDomain>CifManagement</serviceDomain>
+            <serviceID>1901</serviceID>
+            <version>[APP_VERSION:1401000300003946][PWS_VERSION:1401000300003946]</version>
+         </responseServiceContext>
+         <serviceResponse>
+            <statusCode>0</statusCode>
+            <statusDesc>Success</statusDesc>
+         </serviceResponse>
+      </ns0:createRetailCifResponse>
+   </soap:Body>
+</soap:Envelope>

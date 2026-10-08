@@ -81,44 +81,36 @@ Logout: single `POST /auth/logout` (optional also revoke customer via `strToken`
 
 ## 4. Lookups first
 
-Channel JWT only. Load before UI pickers:
+Channel JWT only. Load before UI pickers (payments/ops):
 
-`banks`, `purpose-of-payment`, `purpose-of-account`, `occupations`, `account-types`, `provinces`, `finger-indexes`, `onboarding-steps`, `response-codes`, `id-types`, `app-config`, `currencies`, `version`.
+`banks`, `purpose-of-payment`, `response-codes`, `branches`, `currencies`, `app-config`, `version`.
 
 **Do not hardcode banks or purpose codes.** Honor ETag (304). Empty list = `items:[]` + `00`, not error.
 
-Sample purpose-of-account item: `{ "code":"SAV", "description":"Savings / Asaan Digital" }`.  
-Sample occupation: `{ "code":"EMP", "description":"Salaried Employee" }`.
+Onboarding form catalogs (provinces, occupations, finger-indexes, onboarding-steps, etc.) are **AIS-owned** — not exposed by the switch.
 
 Pagination (banks): opaque `nextCursor` e.g. `"eyJvIjoxMH0"` — pass as `?cursor=`.
 
 ---
 
-## 5. Onboarding
+## 5. Onboarding (iMal orchestration)
 
-### Path A — New Asaan (even CNIC auto)
+KYC, username/password, and mobile login are **AIS-side**. Switch exposes two APIs (channel JWT only, no `strToken`).
 
-1. Channel token + lookups (incl. occupations, purpose-of-account, provinces)  
-2. validate-document-unikrew → upload-documents-unikrew → verify-liveliness → verify-fingers  
-3. `POST /account/open` (full body in required-fields-matrix) → **accountNumber + IBAN**  
-4. `POST /account/register`  
-5. `POST /account/login` → strToken  
+### Flow 1 — New account opening (`POST /account/open`)
 
-### Odd CNIC (manual review)
+1. Channel token  
+2. `POST /api/v1/account/open` with CNIC + customer fields + `productCode` + `accGl`  
+3. Switch: `createRetailCif` → `validateRetailCif` → list → **Option P** (same product/accGl → return list; else createGeneralAccount → authorizeGeneralAccount → list)  
+4. Response: `accounts[]` (with balance) + `cifCreated` + `accountCreated` + `cifNo`
 
-Unikrew mid confidence → `Response_Code=79` on open. Sandbox unblock:
+### Flow 2 — Existing iMal account, mobile registration
 
-```http
-POST /api/v1/account/approve-mock
-Authorization: Bearer <channel>
-{ "CNIC": "4210112345679" }
-```
+1. AIS registers/logs in the user on AIS  
+2. `POST /api/v1/account/account-list` with `{ "CNIC": "..." }` (channel JWT)  
+3. Response: `accounts[]` with balances  
 
-Then retry open. (**Sandbox / mock profile only.**)
-
-Tiny placeholder base64 for images: `"aGVsbG8="` (implementation may accept any ≤2MB; real OCR mock uses parity rule on CNIC digit).
-
-KYC incomplete open → `Response_Code=77`.
+**Auth:** every API call uses `Authorization: Bearer <SWITCH_STATIC_TOKEN>` (static, non-expiring). No channel JWT exchange.
 
 ---
 

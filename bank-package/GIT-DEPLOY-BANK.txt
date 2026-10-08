@@ -1,0 +1,37 @@
+BML Switch — Bank deploy via Git (POC)
+======================================
+Callers: bank ops after git clone (no ZIP required).
+Companion: bank-package/README-BANK-MACHINE.txt, docker-compose.server.yml
+User: "sara code git pe push ... bank ky system pe git se hi deploy ... mock off"
+
+Defaults in this repo are bank-POC ready:
+  MOCK_IMAL=false   → live SOAP for account/open + payment/IFT
+  account-list + balance stay on local MySQL (not live iMal)
+  IMAL_* URLs / company 1 / branch 209 / MODEL.B already in application.yml
+
+Prerequisites
+-------------
+  Docker Engine + Compose, git, reachability to 10.2.60.66:7005, port 18080 free
+
+Steps
+-----
+  git clone <this-repo-url>
+  cd bml_switch
+  cp .env.example .env
+  docker compose -p bml_switch -f docker-compose.server.yml up -d --build
+
+Health
+------
+  curl -s http://127.0.0.1:18080/api/v1/system/health
+  Expect: "mockImal": false
+
+AIS
+---
+  Base: http://<bank-ip>:18080
+  Auth: Bearer BML-POC-STATIC-TOKEN-2026-AIS
+  Postman: docs/handoff/BML-Switch-AIS.postman_collection.json
+
+Logs / SoapUI
+-------------
+  docker logs -f bml_switch_app
+  docker logs bml_switch_app 2>&1 | grep -A80 'iMal SOAP REQUEST'

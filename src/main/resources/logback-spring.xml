@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Bank-machine console logging: timestamp + correlationId + level + logger + message.
+  Tail with: docker logs -f bml_switch_app
+  Grep SOAP: docker logs bml_switch_app 2>&1 | grep -A80 'iMal SOAP REQUEST'
+  User: strong logging + print iMal SOAP requests for SoapUI verify.
+-->
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [corr=%X{correlationId:-}] - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <logger name="com.bankalmurqarmah.switchapp.adapter.imal.soap" level="INFO"/>
+    <logger name="com.bankalmurqarmah.switchapp.shared.web.ApiAccessLoggingFilter" level="INFO"/>
+    <logger name="com.bankalmurqarmah.switchapp" level="INFO"/>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>
